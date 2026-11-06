@@ -14,8 +14,9 @@ async function openPlayerDetail(playerId, fallbackDataStr = null) {
     if (playerId && playerId !== "0" && playerId !== "null" && playerId !== "undefined") {
       const directUrl = `https://api-web.nhle.com/v1/player/${encodeURIComponent(playerId)}/landing`;
       const candidateUrls = [
-        directUrl,
+        `${API_BASE}/api/player/${encodeURIComponent(playerId)}`,
         `${API_BASE}/v1/player/${encodeURIComponent(playerId)}/landing`,
+        directUrl,
         `https://api.allorigins.win/raw?url=${encodeURIComponent(directUrl)}`,
         `https://corsproxy.io/?url=${encodeURIComponent(directUrl)}`
       ];
@@ -140,7 +141,7 @@ async function openPlayerDetail(playerId, fallbackDataStr = null) {
       }
 
       if (poSeasons.length > 0) {
-        html += `<tr class="playoff-header-row playoff-border"><td colspan="${isGoalie ? 8 : 9}">Плей-офф</td></tr>`;
+        html += `<tr class="playoff-header-row"><td colspan="${isGoalie ? 8 : 9}">Плей-офф</td></tr>`;
         poSeasons.forEach(s => {
           const sName = String(s.season || "").replace(/^(\d{4})(\d{4})$/, "$1-$2");
           const league = s.leagueAbbrev || "Лига";
