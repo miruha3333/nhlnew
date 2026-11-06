@@ -65,7 +65,6 @@ async function loadTransactions() {
       const cleanDate = formatTransactionDate(t.date);
       let desc = escapeHtml(t.description);
 
-      // Извлечение чистого названия клуба без [object Object]
       let teamStr = "NHL";
       if (typeof t.team === "string") {
         teamStr = t.team;
@@ -73,7 +72,6 @@ async function loadTransactions() {
         teamStr = t.team.displayName || t.team.name || t.team.abbreviation || "NHL";
       }
 
-      // Превращаем имена игроков в кликабельные ссылки
       desc = desc.replace(/\b([A-Z][a-z]+ [A-Z][a-z]+)\b/g, (match) => {
         if (EXCLUDE_WORDS.includes(match)) return match;
         return `<span class="player-tx-link" onclick="searchAndOpenPlayer('${match}')">${match}</span>`;
@@ -96,8 +94,7 @@ async function loadNews() {
   if (!container) return;
   container.innerHTML = '<div class="loading">Загрузка новостей...</div>';
   try {
-    // Укажите юзернейм вашего канала вместо nhl_live при необходимости: ?channel=ваш_канал
-    const data = await fetchAPI("/api/news?channel=https://t.me/xokkey9");
+    const data = await fetchAPI("/api/news?channel=xokkey9");
     const list = data.news || [];
     if (!list.length) {
       container.innerHTML = '<div class="empty">Новостей пока нет</div>';
