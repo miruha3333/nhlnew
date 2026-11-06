@@ -12,13 +12,24 @@ async function openPlayerDetail(playerId, fallbackDataStr = null) {
 
   try {
     let p = null;
-    if (playerId && playerId !== "0" && playerId !== "null" && playerId !== "undefined") {
-      const directUrl = `https://api-web.nhle.com/v1/player/${encodeURIComponent(playerId)}/landing`;
+    let validId = playerId;
+
+    // Если передан некорректный ID или игрок с драфта — ищем по имени через API поиска NHL
+    if ((!validId || validId === "0" || validId === "null" || validId === "undefined") && fallback?.fullName) {
+      try {
+        const sRes = await fetch(`https://search.d3.nhle.com/api/v1/search/player?culture=en-us&limit=3&q=${encodeURIComponent(fallback.fullName.trim())}`);
+        const sData = await sRes.json();
+        const results = Array.isArray(sData) ? sData : (sData?.data || []);
+        if (results.length > 0 && results[0].playerId) {
+          validId = String(results[0].playerId);
+        }
+      } catch (_) {}
+    }
+
+    if (validId && validId !== "0" && validId !== "null" && validId !== "undefined") {
       const candidateUrls = [
-        `${API_BASE}/api/player/${encodeURIComponent(playerId)}`,
-        directUrl,
-        `https://api.allorigins.win/raw?url=${encodeURIComponent(directUrl)}`,
-        `https://corsproxy.io/?url=${encodeURIComponent(directUrl)}`
+        `${API_BASE}/api/player/${encodeURIComponent(validId)}`,
+        `https://api-web.nhle.com/v1/player/${encodeURIComponent(validId)}/landing`
       ];
 
       for (const u of candidateUrls) {
@@ -27,14 +38,18 @@ async function openPlayerDetail(playerId, fallbackDataStr = null) {
           if (res.ok) {
             const text = await res.text();
             if (text && text.trim().startsWith("{")) {
-              p = JSON.parse(text);
-              if (p && (p.playerId || p.firstName)) break;
+              const parsed = JSON.parse(text);
+              if (parsed && (parsed.playerId || parsed.firstName)) {
+                p = parsed;
+                break;
+              }
             }
           }
         } catch (_) {}
       }
     }
 
+    // Если это проспект, который действительно еще не сыграл в НХЛ
     if (!p) {
       if (fallback) {
         body.innerHTML = `
@@ -70,7 +85,7 @@ async function openPlayerDetail(playerId, fallbackDataStr = null) {
 
     let html = `
       <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
-        <img src="${escapeHtml(p.headshot || `https://assets.nhle.com/mugs/nhl/latest/${playerId}.png`)}" style="width:62px;height:62px;border-radius:50%;object-fit:cover;background:var(--surface-2);border:2px solid var(--border);" onerror="this.src='https://assets.nhle.com/mugs/nhl/default-player.png'">
+        <img src="${escapeHtml(p.headshot || `https://assets.nhle.com/mugs/nhl/latest/${validId}.png`)}" style="width:62px;height:62px;border-radius:50%;object-fit:cover;background:var(--surface-2);border:2px solid var(--border);" onerror="this.src='https://assets.nhle.com/mugs/nhl/default-player.png'">
         <div>
           <div style="font-family:'Oswald',sans-serif;font-size:22px;font-weight:700;line-height:1.2;">${escapeHtml(fullName)}</div>
           <div style="font-size:12px;color:var(--silver-dim);margin-top:2px;">${escapeHtml(p.teamAbbrev || "")} · №${escapeHtml(val(p.sweaterNumber))} · ${escapeHtml(pos)}</div>
