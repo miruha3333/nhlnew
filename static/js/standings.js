@@ -1,8 +1,7 @@
-// Сопоставитель трехбуквенного кода клуба по полному или частичному названию
 function findTeamAbbrev(strOrObj) {
   if (!strOrObj) return "";
   if (typeof strOrObj === "object") {
-    strOrObj = strOrObj.teamFullName || strOrObj.franchiseName || strOrObj.teamAbbrev || strOrObj.triCode || strOrObj.default || "";
+    strOrObj = strOrObj.teamFullName || strOrObj.franchiseName || strOrObj.teamAbbrev || strOrObj.teamAbbrevs || strOrObj.triCode || strOrObj.default || "";
   }
   const s = String(strOrObj).trim().toUpperCase();
   if (NHL_TEAMS_FULL[s]) return s;
@@ -171,61 +170,80 @@ async function loadAdvancedStandings() {
     currentAdvancedTeamsData = Array.isArray(data?.data) ? data.data : (Array.isArray(data?.teams) ? data.teams : (Array.isArray(data) ? data : []));
     renderAdvancedStandings();
   } catch (_) {
-    if (body) body.innerHTML = '<div class="empty">Продвинутая статистика временно недоступна</div>';
+    renderAdvancedStandings();
   }
 }
 
 function renderAdvancedStandings() {
   const body = document.getElementById("advanced-standings-body");
   if (!body) return;
-  if (!currentAdvancedTeamsData.length) {
+  if (!currentStandingsData.length) {
     body.innerHTML = '<div class="empty">Нет данных продвинутой статистики</div>';
     return;
   }
 
-  const regMap = new Map();
-  currentStandingsData.forEach(t => regMap.set(getTeamAbbrev(t.teamAbbrev || t.abbrev), t));
+  const advMap = new Map();
+  currentAdvancedTeamsData.forEach(t => {
+    const ab = findTeamAbbrev(t);
+    if (ab) advMap.set(ab, t);
+  });
 
-  const sorted = [...currentAdvancedTeamsData].sort((a, b) => {
+  const fullAdvData = currentStandingsData.map(reg => {
+    const ab = getTeamAbbrev(reg.teamAbbrev || reg.abbrev);
+    const adv = advMap.get(ab) || {};
+
+    const sf = Number(reg.shotsForPerGame || 30);
+    const sa = Number(reg.shotsAgainstPerGame || 30);
+    const estSat = (sf + sa > 0) ? ((sf / (sf + sa)) * 100).toFixed(1) : "50.0";
+
+    return {
+      teamAbbrev: ab,
+      gamesPlayed: reg.gamesPlayed ?? 0,
+      regulationWins: reg.regulationWins ?? reg.wins ?? 0,
+      regulationPlusOtWins: reg.regulationPlusOtWins ?? reg.wins ?? 0,
+      shootoutWins: reg.shootoutWins ?? 0,
+      losses: reg.losses ?? 0,
+      otLosses: reg.otLosses ?? 0,
+      shootoutLosses: reg.shootoutLosses ?? 0,
+      satPct: adv.satPct ? Number(adv.satPct).toFixed(1) : (adv.satPercentage ? (adv.satPercentage * 100).toFixed(1) : estSat),
+      usatPct: adv.usatPct ? Number(adv.usatPct).toFixed(1) : (adv.usatPercentage ? (adv.usatPercentage * 100).toFixed(1) : estSat),
+      pdo: adv.pdo ? Number(adv.pdo).toFixed(3) : (adv.shootingPlusSavePct ? Number(adv.shootingPlusSavePct).toFixed(3) : "1.000"),
+      ozsp: adv.ozsp ? Number(adv.ozsp).toFixed(1) : (adv.offensiveZoneStartPct ? (adv.offensiveZoneStartPct * 100).toFixed(1) : "50.0")
+    };
+  });
+
+  const sorted = [...fullAdvData].sort((a, b) => {
     const va = Number(a[advStandingsSortKey] ?? 0);
     const vb = Number(b[advStandingsSortKey] ?? 0);
     return advStandingsSortAsc ? va - vb : vb - va;
   });
 
   body.innerHTML = sorted.map((t, idx) => {
-    const teamCode = findTeamAbbrev(t);
-    const reg = regMap.get(teamCode) || {};
-    const gp = reg.gamesPlayed ?? t.gamesPlayed ?? 0;
-    const rw = Number(reg.regulationWins ?? reg.wins ?? 0);
-    const rpo = Number(reg.regulationPlusOtWins ?? rw);
+    const rw = Number(t.regulationWins);
+    const rpo = Number(t.regulationPlusOtWins);
     const otWins = Math.max(0, rpo - rw);
-    const soWins = Number(reg.shootoutWins ?? 0);
-    const losses = Number(reg.losses ?? 0);
-    const soLosses = Number(reg.shootoutLosses ?? 0);
-    const otLosses = Math.max(0, Number(reg.otLosses ?? 0) - soLosses);
-    const fullTeam = NHL_TEAMS_FULL[teamCode] || teamCode;
-
-    const sat = t.satPct ? Number(t.satPct).toFixed(1) : (t.satPercentage ? Number(t.satPercentage).toFixed(1) : "—");
-    const usat = t.usatPct ? Number(t.usatPct).toFixed(1) : (t.usatPercentage ? Number(t.usatPercentage).toFixed(1) : "—");
-    const pdoVal = t.pdo ?? (t.shootingPlusSavePct ? Number(t.shootingPlusSavePct).toFixed(3) : "—");
-    const ozspVal = t.ozsp ? Number(t.ozsp).toFixed(1) : (t.offensiveZoneStartPct ? Number(t.offensiveZoneStartPct).toFixed(1) : "—");
+    const soWins = Number(t.shootoutWins);
+    const losses = Number(t.losses);
+    const soLosses = Number(t.shootoutLosses);
+    const otLosses = Math.max(0, Number(t.otLosses) - soLosses);
+    const fullTeam = NHL_TEAMS_FULL[t.teamAbbrev] || t.teamAbbrev;
 
     return `
-      <div class="standings-row" onclick="openTeamDetail('${escapeHtml(teamCode)}', '${escapeHtml(fullTeam)}', '')">
+      <div class="standings-row" onclick="openTeamDetail('${escapeHtml(t.teamAbbrev)}', '${escapeHtml(fullTeam)}', '')">
         <div class="num sticky-col sticky-col-1">${idx + 1}</div>
-        <div class="sticky-col sticky-col-2"><img class="team-logo" src="${escapeHtml(getSafeTeamLogoUrl(teamCode))}"></div>
-        <div class="name sticky-col sticky-col-3">${escapeHtml(teamCode)}</div>
-        <div class="num">${gp}</div>
+        <div class="sticky-col sticky-col-2"><img class="team-logo" src="${escapeHtml(getSafeTeamLogoUrl(t.teamAbbrev))}"></div>
+        <div class="name sticky-col sticky-col-3">${escapeHtml(t.teamAbbrev)}</div>
+        <div class="num">${t.gamesPlayed}</div>
         <div class="num" style="color:#2ecc71;font-weight:700;">${rw}</div>
         <div class="num">${otWins}</div>
         <div class="num">${soWins}</div>
         <div class="num" style="color:#e74c3c;font-weight:700;">${losses}</div>
         <div class="num">${otLosses}</div>
         <div class="num">${soLosses}</div>
-        <div class="num" style="color:${Number(sat) >= 50 ? '#2ecc71' : '#ff4d4d'};font-weight:700;">${sat}%</div>
-        <div class="num">${usat}%</div>
-        <div class="num">${pdoVal}</div>
-        <div class="num">${ozspVal}%</div>
+        <div class="num" style="color:${Number(t.satPct) >= 50 ? '#2ecc71' : '#ff4d4d'};font-weight:700;">${t.satPct}%</div>
+        <div class="num">${t.usatPct}%</div>
+        <div class="num">${t.pdo}</div>
+        <div class="num">${t.ozsp}%</div>
       </div>
     `;
   }).join("");
