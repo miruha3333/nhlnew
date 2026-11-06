@@ -76,7 +76,7 @@ let skaterPositionFilter = "ALL";
 let goalieMinGames = true;
 
 // Драфт
-let currentDraftYear = "2024";
+let currentDraftYear = "2026";
 
 let currentTeamFullData = null;
 const goalieHeadshotCache = new Map();
@@ -85,7 +85,7 @@ const h2hTeamCache = new Map();
 let navHistory = [];
 let isNavigatingBack = false;
 
-// Прямой надежный загрузчик через Cloudflare Worker
+// Прямой загрузчик через Worker
 async function fetchAPI(endpoint) {
   const clean = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
 
