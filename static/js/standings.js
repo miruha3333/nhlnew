@@ -9,7 +9,7 @@ async function buildSeasonOptions() {
   if (!sel) return;
   try {
     const data = await fetchAPI("/api/seasons-list");
-    const seasons = Array.isArray(data) ? data : (data?.data || data?.seasons || []);
+    const seasons = Array.isArray(data) ? data : (data?.seasons || []);
     let html = "<option value=''>Текущий сезон</option>";
     [...seasons].sort((a, b) => (b.id || 0) - (a.id || 0)).forEach(s => {
       const id = String(s.id || "");
@@ -29,6 +29,12 @@ function renderTeamRow(team, rank) {
   const logoSrc = getSafeTeamLogoUrl(abbrev, team.logo || team.teamLogo);
   const diff = Number(team.goalDifferential ?? ((team.goalFor ?? 0) - (team.goalAgainst ?? 0)));
 
+  // Расчёт процента набранных очков (%О)
+  const gp = team.gamesPlayed ?? 0;
+  const pts = team.points ?? 0;
+  const ptPct = team.pointPctg ?? (gp > 0 ? pts / (gp * 2) : 0);
+  const ptPctFormatted = formatPctCell(ptPct);
+
   return `
     <div class="standings-row" onclick="openTeamDetail('${escapeHtml(abbrev)}', '${escapeHtml(teamFullName)}', '${logoSrc}')">
       <div class="num sticky-col sticky-col-1">${rank}</div>
@@ -36,14 +42,16 @@ function renderTeamRow(team, rank) {
         <img class="team-logo" src="${escapeHtml(logoSrc)}" alt="" onerror="this.onerror=null; this.src='https://assets.nhle.com/logos/nhl/svg/${escapeHtml(abbrev)}_dark.svg';">
       </div>
       <div class="name sticky-col sticky-col-3">${escapeHtml(abbrev)}</div>
-      <div class="num">${team.gamesPlayed ?? 0}</div>
+      <div class="num">${gp}</div>
       <div class="num">${team.wins ?? 0}</div>
       <div class="num">${team.otLosses ?? 0}</div>
       <div class="num">${team.losses ?? 0}</div>
       <div class="num">${team.goalFor ?? 0}</div>
       <div class="num">${team.goalAgainst ?? 0}</div>
       <div class="diff" style="color:${diff >= 0 ? '#2ecc71' : '#e74c3c'}">${diff > 0 ? '+' : ''}${diff}</div>
-      <div class="pts">${team.points ?? 0}</div>
+      <div class="pts">${pts}</div>
+      <!-- КОЛОНКА %О -->
+      <div class="num" style="color:#ffffff !important;font-weight:700;">${ptPctFormatted}</div>
       <div class="num">${formatPctCell(team.powerPlayPctg)}</div>
       <div class="num">${formatPctCell(team.penaltyKillPctg)}</div>
       <div class="num">${formatPctCell(team.faceoffWinPct)}</div>
@@ -80,13 +88,13 @@ function renderStandings() {
     const field = standingsViewMode === "conf" ? "conferenceName" : "divisionName";
     const groups = {};
     currentStandingsData.forEach(t => {
-      const g = nameStr(t[field]) || (standingsViewMode === "conf" ? "Конференция" : "Дивизион");
+      const g = nameStr(t[field]) || "Конференция / Дивизион";
       if (!groups[g]) groups[g] = [];
       groups[g].push(t);
     });
 
     Object.keys(groups).sort().forEach(gName => {
-      html += `<div class="group-header-row">${escapeHtml(gName)}</div>`;
+      html += `<div class="group-header-row"><div>${escapeHtml(gName)}</div></div>`;
       html += sortTeams(groups[gName]).map((t, i) => renderTeamRow(t, i + 1)).join("");
     });
   }
@@ -121,9 +129,9 @@ async function loadStandings() {
     }
 
     const specialMap = new Map();
-    const specialTeams = Array.isArray(specialData?.data) ? specialData.data : (Array.isArray(specialData?.teams) ? specialData.teams : []);
+    const specialTeams = Array.isArray(specialData?.teams) ? specialData.teams : [];
     specialTeams.forEach(r => {
-      const ab = getTeamAbbrev(r.teamAbbrev || r.team || r.teamFullName);
+      const ab = getTeamAbbrev(r.teamAbbrev || r.team);
       if (ab) specialMap.set(ab, r);
     });
 
@@ -154,7 +162,7 @@ async function loadAdvancedStandings() {
     const seasonId = seasonIdFromEndDate(selectedSeasonEndDate);
     const query = seasonId ? `?season=${seasonId}` : "";
     const data = await fetchAPI(`/api/advanced-team-stats${query}`);
-    currentAdvancedTeamsData = Array.isArray(data?.data) ? data.data : (Array.isArray(data?.teams) ? data.teams : []);
+    currentAdvancedTeamsData = Array.isArray(data?.teams) ? data.teams : (Array.isArray(data) ? data : []);
     renderAdvancedStandings();
   } catch (_) {
     if (body) body.innerHTML = '<div class="empty">Продвинутая статистика временно недоступна</div>';
@@ -179,8 +187,7 @@ function renderAdvancedStandings() {
   });
 
   body.innerHTML = sorted.map((t, idx) => {
-    const abbrev = getTeamAbbrev(t.teamAbbrev || t.team);
-    const reg = regMap.get(abbrev) || {};
+    const reg = regMap.get(t.teamAbbrev) || {};
     const gp = reg.gamesPlayed ?? t.gamesPlayed ?? 0;
     const rw = Number(reg.regulationWins ?? reg.wins ?? 0);
     const rpo = Number(reg.regulationPlusOtWins ?? rw);
@@ -189,13 +196,13 @@ function renderAdvancedStandings() {
     const losses = Number(reg.losses ?? 0);
     const soLosses = Number(reg.shootoutLosses ?? 0);
     const otLosses = Math.max(0, Number(reg.otLosses ?? 0) - soLosses);
-    const fullTeam = NHL_TEAMS_FULL[abbrev] || abbrev;
+    const fullTeam = NHL_TEAMS_FULL[t.teamAbbrev] || t.teamAbbrev;
 
     return `
-      <div class="standings-row" onclick="openTeamDetail('${escapeHtml(abbrev)}', '${escapeHtml(fullTeam)}', '')">
+      <div class="standings-row" onclick="openTeamDetail('${escapeHtml(t.teamAbbrev)}', '${escapeHtml(fullTeam)}', '')">
         <div class="num sticky-col sticky-col-1">${idx + 1}</div>
-        <div class="sticky-col sticky-col-2"><img class="team-logo" src="${escapeHtml(getSafeTeamLogoUrl(abbrev))}"></div>
-        <div class="name sticky-col sticky-col-3">${escapeHtml(abbrev)}</div>
+        <div class="sticky-col sticky-col-2"><img class="team-logo" src="${escapeHtml(getSafeTeamLogoUrl(t.teamAbbrev))}"></div>
+        <div class="name sticky-col sticky-col-3">${escapeHtml(t.teamAbbrev)}</div>
         <div class="num">${gp}</div>
         <div class="num" style="color:#2ecc71;font-weight:700;">${rw}</div>
         <div class="num">${otWins}</div>
@@ -203,10 +210,10 @@ function renderAdvancedStandings() {
         <div class="num" style="color:#e74c3c;font-weight:700;">${losses}</div>
         <div class="num">${otLosses}</div>
         <div class="num">${soLosses}</div>
-        <div class="num" style="color:${(t.satPct ?? 50) >= 50 ? '#2ecc71' : '#ff4d4d'};font-weight:700;">${t.satPct ?? '—'}%</div>
-        <div class="num">${t.usatPct ?? '—'}%</div>
-        <div class="num">${t.pdo ?? '—'}</div>
-        <div class="num">${t.ozsp ?? '—'}%</div>
+        <div class="num" style="color:${t.satPct >= 50 ? '#2ecc71' : '#ff4d4d'};font-weight:700;">${t.satPct}%</div>
+        <div class="num">${t.usatPct}%</div>
+        <div class="num">${t.pdo}</div>
+        <div class="num">${t.ozsp}%</div>
       </div>
     `;
   }).join("");
