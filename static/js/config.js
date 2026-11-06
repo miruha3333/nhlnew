@@ -1,5 +1,4 @@
-export const API_BASE = window.location.origin;
-
+export const API_BASE = "https://nhlnew.sergvolk504.workers.dev";
 export const TEAM_COLORS = {
   ANA: "#F47A38", BOS: "#FFB81C", BUF: "#003087", CGY: "#C8102E",
   CAR: "#CC0000", CHI: "#CF0A2C", COL: "#6F263D", CBJ: "#002654",
