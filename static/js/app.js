@@ -11,8 +11,10 @@ function switchTab(tab) {
     if (view) view.style.display = (tab === t) ? "" : "none";
   });
 
-  document.getElementById("view-detail").style.display = "none";
-  document.getElementById("main-nav").style.display = "grid";
+  const detailView = document.getElementById("view-detail");
+  if (detailView) detailView.style.display = "none";
+  const mainNav = document.getElementById("main-nav");
+  if (mainNav) mainNav.style.display = "grid";
 
   if (tab === "schedule") loadSchedule();
   if (tab === "standings") loadStandings();
@@ -23,17 +25,17 @@ function switchTab(tab) {
 }
 
 // Нажатие кнопки "Назад" в шапке
-document.getElementById("header-back-btn").onclick = handleGoBack;
+document.getElementById("header-back-btn")?.addEventListener("click", handleGoBack);
 
 // Переключение дат матчей
-document.getElementById("prev-day").onclick = () => {
+document.getElementById("prev-day")?.addEventListener("click", () => {
   currentDate.setDate(currentDate.getDate() - 1);
   loadSchedule();
-};
-document.getElementById("next-day").onclick = () => {
+});
+document.getElementById("next-day")?.addEventListener("click", () => {
   currentDate.setDate(currentDate.getDate() + 1);
   loadSchedule();
-};
+});
 document.getElementById("date-picker")?.addEventListener("change", e => {
   if (e.target.value) {
     currentDate = new Date(`${e.target.value}T12:00:00`);
@@ -42,15 +44,15 @@ document.getElementById("date-picker")?.addEventListener("change", e => {
 });
 
 // Кнопки основного меню навигации
-document.getElementById("tab-schedule").onclick = () => switchTab("schedule");
-document.getElementById("tab-standings").onclick = () => switchTab("standings");
-document.getElementById("tab-players").onclick = () => switchTab("players");
-document.getElementById("tab-transactions").onclick = () => switchTab("transactions");
-document.getElementById("tab-draft").onclick = () => switchTab("draft");
-document.getElementById("tab-news").onclick = () => switchTab("news");
+document.getElementById("tab-schedule")?.addEventListener("click", () => switchTab("schedule"));
+document.getElementById("tab-standings")?.addEventListener("click", () => switchTab("standings"));
+document.getElementById("tab-players")?.addEventListener("click", () => switchTab("players"));
+document.getElementById("tab-transactions")?.addEventListener("click", () => switchTab("transactions"));
+document.getElementById("tab-draft")?.addEventListener("click", () => switchTab("draft"));
+document.getElementById("tab-news")?.addEventListener("click", () => switchTab("news"));
 
 // Кнопки категорий лидеров (Полевые / Вратари)
-document.getElementById("leaders-skaters-btn").onclick = () => {
+document.getElementById("leaders-skaters-btn")?.addEventListener("click", () => {
   leadersMode = "skaters";
   document.getElementById("leaders-skaters-btn").classList.add("active");
   document.getElementById("leaders-goalies-btn").classList.remove("active");
@@ -59,9 +61,9 @@ document.getElementById("leaders-skaters-btn").onclick = () => {
   document.getElementById("goalie-categories").style.display = "none";
   document.getElementById("goalie-filters-bar").style.display = "none";
   loadPlayers();
-};
+});
 
-document.getElementById("leaders-goalies-btn").onclick = () => {
+document.getElementById("leaders-goalies-btn")?.addEventListener("click", () => {
   leadersMode = "goalies";
   document.getElementById("leaders-goalies-btn").classList.add("active");
   document.getElementById("leaders-skaters-btn").classList.remove("active");
@@ -70,36 +72,36 @@ document.getElementById("leaders-goalies-btn").onclick = () => {
   document.getElementById("goalie-categories").style.display = "grid";
   document.getElementById("goalie-filters-bar").style.display = "flex";
   cachedGoaliesList.length ? renderGoaliesFromCache() : loadGoalieCards();
-};
+});
 
 // Фильтр «Новички» (Calder)
-document.getElementById("filter-rookie-toggle").onclick = () => {
+document.getElementById("filter-rookie-toggle")?.addEventListener("click", () => {
   skaterRookieOnly = !skaterRookieOnly;
   document.getElementById("filter-rookie-toggle").classList.toggle("active", skaterRookieOnly);
   loadPlayers();
-};
+});
 
 // Фильтры позиций «Защитники» / «Форварды»
-document.getElementById("filter-pos-d").onclick = () => {
+document.getElementById("filter-pos-d")?.addEventListener("click", () => {
   skaterPositionFilter = (skaterPositionFilter === "D") ? "ALL" : "D";
   document.getElementById("filter-pos-d").classList.toggle("active", skaterPositionFilter === "D");
   document.getElementById("filter-pos-f").classList.remove("active");
   loadPlayers();
-};
+});
 
-document.getElementById("filter-pos-f").onclick = () => {
+document.getElementById("filter-pos-f")?.addEventListener("click", () => {
   skaterPositionFilter = (skaterPositionFilter === "F") ? "ALL" : "F";
   document.getElementById("filter-pos-f").classList.toggle("active", skaterPositionFilter === "F");
   document.getElementById("filter-pos-d").classList.remove("active");
   loadPlayers();
-};
+});
 
 // Фильтр вратарей «Мин. 5 матчей»
-document.getElementById("goalie-min-filter").onclick = () => {
+document.getElementById("goalie-min-filter")?.addEventListener("click", () => {
   goalieMinGames = !goalieMinGames;
   document.getElementById("goalie-min-filter").classList.toggle("active", goalieMinGames);
   renderGoaliesFromCache();
-};
+});
 
 // Подкатегории полевых
 document.querySelectorAll("#skater-categories button").forEach(b => {
@@ -129,10 +131,10 @@ document.getElementById("draft-year-select")?.addEventListener("change", e => {
 });
 
 // Режимы таблицы
-document.getElementById("std-mode-all").onclick = () => setStandingsMode("all");
-document.getElementById("std-mode-conf").onclick = () => setStandingsMode("conf");
-document.getElementById("std-mode-div").onclick = () => setStandingsMode("div");
-document.getElementById("std-mode-adv").onclick = () => setStandingsMode("adv");
+document.getElementById("std-mode-all")?.addEventListener("click", () => setStandingsMode("all"));
+document.getElementById("std-mode-conf")?.addEventListener("click", () => setStandingsMode("conf"));
+document.getElementById("std-mode-div")?.addEventListener("click", () => setStandingsMode("div"));
+document.getElementById("std-mode-adv")?.addEventListener("click", () => setStandingsMode("adv"));
 
 // Выбор сезона таблицы
 document.getElementById("season-select")?.addEventListener("change", e => {
@@ -143,13 +145,13 @@ document.getElementById("season-select")?.addEventListener("change", e => {
 });
 
 // Модалка любимого клуба
-document.getElementById("my-team-trigger").onclick = () => {
+document.getElementById("my-team-trigger")?.addEventListener("click", () => {
   renderTeamSelectorModal();
   document.getElementById("my-team-modal").style.display = "flex";
-};
-document.getElementById("close-team-modal-btn").onclick = () => {
+});
+document.getElementById("close-team-modal-btn")?.addEventListener("click", () => {
   document.getElementById("my-team-modal").style.display = "none";
-};
+});
 
 function renderTeamSelectorModal() {
   const grid = document.getElementById("team-selector-grid");
@@ -177,10 +179,10 @@ function renderTeamSelectorModal() {
 }
 
 // Донат
-document.getElementById("donate-header-btn").onclick = () => {
+document.getElementById("donate-header-btn")?.addEventListener("click", () => {
   const TRIBUTE_URL = "https://t.me/tribute/app?startapp=dTl8";
   window.openPostInTelegram(TRIBUTE_URL);
-};
+});
 
 // Запуск
 function initApp() {
