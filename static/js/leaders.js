@@ -5,14 +5,8 @@ async function loadPlayers() {
 
   try {
     let query = `/api/leaders/${encodeURIComponent(currentCat)}?limit=50`;
-    
-    if (skaterRookieOnly) {
-      query += `&isRookie=true&cayenneExp=isRookie=1`;
-    }
-    
-    if (skaterPositionFilter && skaterPositionFilter !== "ALL") {
-      query += `&positionCode=${skaterPositionFilter}`;
-    }
+    if (skaterRookieOnly) query += `&isRookie=true`;
+    if (skaterPositionFilter && skaterPositionFilter !== "ALL") query += `&positionCode=${skaterPositionFilter}`;
 
     let data = null;
     try {
@@ -24,21 +18,19 @@ async function loadPlayers() {
 
     let list = data?.[currentCat] || data?.data || data?.skaters || data?.leaders || [];
 
-    // Фильтрация по позиции по данным из ответа API
+    // Клиентская фильтрация по позиции, если сервер отдал общий список
     if (skaterPositionFilter && skaterPositionFilter !== "ALL" && list.length > 0) {
       const targetPos = skaterPositionFilter.toUpperCase();
-      const posFiltered = list.filter(p => {
+      list = list.filter(p => {
         const pos = (p.positionCode || p.position || p.player?.positionCode || "").toUpperCase();
         if (!pos) return true;
         return targetPos === "D" ? pos === "D" : pos !== "D";
       });
-      if (posFiltered.length > 0) list = posFiltered;
     }
 
-    // Фильтрация по новичкам
+    // Клиентская фильтрация новичков
     if (skaterRookieOnly && list.length > 0) {
-      const rookieFiltered = list.filter(p => p.isRookie === true || p.rookie === true || p.player?.isRookie === true);
-      if (rookieFiltered.length > 0) list = rookieFiltered;
+      list = list.filter(p => p.isRookie === true || p.rookie === true || p.player?.isRookie === true);
     }
 
     list = list.slice(0, currentLimit);
@@ -52,9 +44,11 @@ async function loadPlayers() {
       let valToShow = p.value ?? p[currentCat] ?? "—";
       if (currentCat === "plusMinus" && Number(valToShow) > 0) valToShow = `+${valToShow}`;
 
-      const rawTeam = getTeamAbbrev(p.teamAbbrev || p.team || p.player?.teamTriCode);
+      const rawTeam = getTeamAbbrev(p.teamAbbrev || p.team || p.player?.teamTriCode || p.teamTriCode);
       const cleanTeam = rawTeam.replace(/[^A-Za-z]/gi, "").trim();
-      const gp = p.gamesPlayed ?? p.gp ?? p.player?.gamesPlayed ?? "—";
+      
+      // Надежный поиск количества сыгранных игр
+      const gp = p.gamesPlayed ?? p.gp ?? p.games ?? p.player?.gamesPlayed ?? "—";
       const pName = p.name || p.playerFullName || p.player?.fullName || `${nameStr(p.firstName)} ${nameStr(p.lastName)}`.trim();
       const pId = getPlayerId(p) || p.player?.id || "";
 
@@ -84,7 +78,7 @@ async function loadGoalieCards() {
   const body = document.getElementById("players-body");
   if (body) body.innerHTML = '<div class="loading">Загрузка вратарей...</div>';
   try {
-    const data = await fetchAPI("/api/goalie-leaders?limit=100");
+    const data = await fetchAPI("/api/goalie-leaders");
     cachedGoaliesList = data.goalies || data.wins || data.data || [];
     renderGoaliesFromCache();
   } catch (err) {
@@ -101,9 +95,8 @@ function renderGoaliesFromCache() {
   }
 
   let rows = [...cachedGoaliesList];
-
   if (goalieMinGames) {
-    rows = rows.filter(g => (g.gamesPlayed || 0) >= 5);
+    rows = rows.filter(g => (g.gamesPlayed || g.gp || 0) >= 5);
   }
 
   rows.sort((a, b) => {
