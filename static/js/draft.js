@@ -1,4 +1,3 @@
-// Заполнение списка драфта годами от 2026 до 1963
 function buildDraftYearOptions() {
   const sel = document.getElementById("draft-year-select");
   if (!sel) return;
@@ -47,7 +46,6 @@ async function loadDraft(year) {
       return;
     }
 
-    // Группировка пиков по раундам
     const rounds = {};
     picks.forEach(p => {
       const r = p.round || p.roundNumber || 1;
@@ -83,7 +81,6 @@ async function loadDraft(year) {
         if (pick.weightInKilograms) weight = `${pick.weightInKilograms} кг`;
         else if (pick.weightInPounds || pick.weight) weight = `${Math.round((pick.weightInPounds || pick.weight) * 0.453592)} кг`;
 
-        // Карьерная статистика в НХЛ, если доступна в драфт-ответе
         let nhlStat = "";
         if (pick.careerGamesPlayed) {
           nhlStat = `НХЛ: ${pick.careerGamesPlayed} игр, ${pick.careerPoints || 0} очков`;
