@@ -1,0 +1,315 @@
+.table-wrapper,
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.standings-table {
+  min-width: 820px;
+}
+
+.standings-head,
+.standings-row {
+  display: grid;
+  grid-template-columns: 26px 32px 105px repeat(8, 38px) 65px 65px 55px 50px 50px;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.advanced-standings-table {
+  min-width: 580px;
+}
+
+.advanced-standings-table .standings-head,
+.advanced-standings-table .standings-row {
+  display: grid;
+  grid-template-columns: 26px 32px 105px 80px 80px 70px 75px 65px 65px;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.sticky-col {
+  position: sticky;
+  z-index: 2;
+  background: var(--surface);
+}
+
+.sticky-col-1 { left: 0; }
+.sticky-col-2 { left: 26px; }
+.sticky-col-3 { left: 58px; }
+
+.standings-head > div,
+.standings-row > div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 2px;
+}
+
+.standings-head > div {
+  color: var(--silver-dim);
+  font-size: 10px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.standings-head .sticky-col {
+  z-index: 3;
+}
+
+.standings-head .sortable {
+  color: var(--silver);
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+
+.standings-row {
+  cursor: pointer;
+}
+
+.standings-row:active > div {
+  background: var(--surface-2) !important;
+}
+
+.standings-row .name {
+  width: 100%;
+  justify-content: flex-start;
+  overflow: hidden;
+  padding-left: 5px;
+  font-family: "Oswald", sans-serif;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.clinch-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+.clinch-x { background: rgba(46, 204, 113, .2); color: #2ecc71; border: 1px solid rgba(46, 204, 113, .4); }
+.clinch-e { background: rgba(200, 16, 46, .2); color: #ff4d4d; border: 1px solid rgba(200, 16, 46, .4); }
+
+.standings-row .num,
+.standings-row .diff,
+.standings-row .pts,
+.stat-table .num {
+  font-family: "Roboto Mono", monospace;
+}
+
+.standings-row .num.sticky-col-1 {
+  color: var(--silver-dim);
+}
+
+.standings-row .team-logo {
+  width: 20px;
+  height: 20px;
+}
+
+.standings-row .pts,
+.special-team-pct {
+  color: #ffffff !important;
+  font-weight: 700;
+}
+
+.stat-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.stat-table th,
+.stat-table td {
+  padding: 6px 6px;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.stat-table th {
+  color: var(--silver-dim);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.stat-table th.sortable {
+  color: var(--silver);
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+
+.stat-table td:first-child,
+.stat-table th:first-child {
+  font-family: "Oswald", sans-serif;
+  font-weight: 600;
+  text-align: left;
+}
+
+.stat-table tbody tr.clickable-row {
+  cursor: pointer;
+}
+
+.stat-table tbody tr.clickable-row:active {
+  background: var(--surface-2);
+}
+
+.stat-table tbody tr.playoff-header-row td {
+  padding: 6px 8px;
+  color: var(--silver);
+  background: var(--surface-2);
+  font-family: "Oswald", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.stat-table tbody tr.playoff-border {
+  border-bottom: 3px solid var(--accent);
+}
+
+.bracket-wrap {
+  margin-top: 16px;
+}
+
+.bracket-round-title {
+  margin: 14px 0 8px;
+  color: var(--silver-dim);
+  font-family: "Oswald", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.bracket-series {
+  margin-bottom: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.bracket-team-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 13px;
+}
+
+.bracket-team-row .bt-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Oswald", sans-serif;
+  font-weight: 600;
+}
+
+.bracket-team-row .bt-name img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.bracket-team-row.winner .bt-name {
+  color: var(--accent);
+}
+
+.bracket-team-row .bt-wins {
+  font-family: "Roboto Mono", monospace;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.player-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.player-row:last-child {
+  border-bottom: none;
+}
+
+.player-row .rank {
+  width: 20px;
+  flex-shrink: 0;
+  color: var(--silver-dim);
+  font-family: "Roboto Mono", monospace;
+  text-align: center;
+}
+
+.player-row .headshot {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface-2);
+  object-fit: cover;
+}
+
+.player-row .info {
+  min-width: 0;
+  flex: 1;
+}
+
+.player-row .pname {
+  overflow: hidden;
+  font-family: "Oswald", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-row .pteam {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  color: var(--silver-dim);
+  font-size: 11px;
+}
+
+.player-row .pteam .team-logo {
+  width: 16px;
+  height: 16px;
+}
+
+.player-row .pvalue {
+  flex-shrink: 0;
+  color: #ffffff !important;
+  font-family: "Roboto Mono", monospace;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.show-more {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  background: var(--surface-2);
+  font-family: "Oswald", sans-serif;
+  font-size: 12px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--silver-dim);
+  cursor: pointer;
+}
