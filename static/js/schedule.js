@@ -104,8 +104,8 @@ async function loadSchedule() {
 async function fetchGamecenterEndpoint(gameId, endpoint) {
   const targetUrl = `https://api-web.nhle.com/v1/gamecenter/${encodeURIComponent(gameId)}/${endpoint}`;
   const urls = [
-    `${API_BASE}/v1/gamecenter/${encodeURIComponent(gameId)}/${endpoint}`,
     `${API_BASE}/api/gamecenter/${encodeURIComponent(gameId)}/${endpoint}`,
+    `${API_BASE}/v1/gamecenter/${encodeURIComponent(gameId)}/${endpoint}`,
     targetUrl,
     `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
     `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`
@@ -123,7 +123,7 @@ async function fetchGamecenterEndpoint(gameId, endpoint) {
   return null;
 }
 
-// ПОЛНЫЙ ЭКРАН ПОСЛЕМАТЧЕВОЙ СТАТИСТИКИ (СОГЛАСНО СКРИНШОТАМ)
+// Полный экран послематчевой статистики
 async function openGameDetail(gameId, awayAbbrev, homeAbbrev) {
   pushScreenHistory(() => openGameDetail(gameId, awayAbbrev, homeAbbrev));
   openDetail();
@@ -152,7 +152,7 @@ async function openGameDetail(gameId, awayAbbrev, homeAbbrev) {
 
     let html = "";
 
-    // 1. ОФИЦИАЛЬНЫЙ ВИДЕООБЗОР МАТЧА (NHL)
+    // 1. Официальный видеообзор матча (NHL)
     html += `
       <div class="section-title">ОФИЦИАЛЬНЫЙ ВИДЕООБЗОР МАТЧА (NHL)</div>
       <div id="video-recap-slot" style="margin-bottom:18px;">
@@ -160,7 +160,7 @@ async function openGameDetail(gameId, awayAbbrev, homeAbbrev) {
       </div>
     `;
 
-    // 2. ТРИ ЗВЕЗДЫ МАТЧА
+    // 2. Три звезды матча
     const stars = landing?.summary?.threeStars || [];
     if (stars.length > 0) {
       html += `<div class="section-title">ТРИ ЗВЕЗДЫ МАТЧА</div>`;
@@ -187,7 +187,7 @@ async function openGameDetail(gameId, awayAbbrev, homeAbbrev) {
       html += `</div>`;
     }
 
-    // 3. ГОЛЫ ПО ПЕРИОДАМ
+    // 3. Голы по периодам
     const periods = landing?.summary?.scoring || [];
     html += `<div class="section-title">ГОЛЫ</div>`;
     if (periods.length === 0) {
@@ -225,7 +225,7 @@ async function openGameDetail(gameId, awayAbbrev, homeAbbrev) {
       html += `</div>`;
     }
 
-    // 4. СТАТИСТИКА КОМАНД
+    // 4. Статистика команд
     const statsList = landing?.summary?.teamGameStats || [];
     if (statsList.length > 0) {
       const statMapLabels = {
@@ -279,7 +279,7 @@ async function openGameDetail(gameId, awayAbbrev, homeAbbrev) {
       html += `</div>`;
     }
 
-    // 5. СТАТИСТИКА ИГРОКОВ (ПОЛЕВЫЕ И ВРАТАРИ)
+    // 5. Статистика игроков (полевые и вратари)
     function renderSkatersTable(teamAbbrev, skatersList) {
       if (!skatersList || !skatersList.length) return "";
       return `
