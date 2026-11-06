@@ -7,26 +7,6 @@ window.openPostInTelegram = function(url) {
   }
 };
 
-// Мгновенный поиск хоккеиста по фамилии в базе НХЛ и переход в его досье
-async function searchAndOpenPlayer(name) {
-  if (!name) return;
-  openDetail();
-  const body = document.getElementById("detail-body");
-  body.innerHTML = `<div class="loading">Поиск досье игрока ${escapeHtml(name)}...</div>`;
-
-  try {
-    const res = await fetch(`https://search.d3.nhle.com/api/v1/search/player?culture=en-us&limit=3&q=${encodeURIComponent(name.trim())}`);
-    const data = await res.json();
-    const results = Array.isArray(data) ? data : (data?.data || []);
-    if (results.length > 0 && results[0].playerId) {
-      openPlayerDetail(results[0].playerId);
-      return;
-    }
-  } catch (_) {}
-
-  body.innerHTML = `<div class="empty">Игрок «${escapeHtml(name)}» не найден в базе НХЛ</div>`;
-}
-
 function formatTransactionDate(rawDate) {
   if (!rawDate) return "";
   try {
@@ -36,19 +16,14 @@ function formatTransactionDate(rawDate) {
       if (parts.length === 3) return `${parts[2]}.${parts[1]}.${parts[0]}`;
       return rawDate;
     }
-    return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+    return `${day}.${month}.${year}`;
   } catch (_) {
     return String(rawDate).split("T")[0];
   }
 }
-
-// Список не-игровых слов (города, штаты, клубы), чтобы не делать их ссылками
-const EXCLUDE_WORDS = [
-  "New York", "San Diego", "San Jose", "Los Angeles", "Grand Rapids",
-  "New Jersey", "Tampa Bay", "St Louis", "Las Vegas", "Colorado Eagles",
-  "Wilkes Barre", "Lehigh Valley", "Toronto Marlies", "Springfield Thunderbirds",
-  "Free Agent", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
-];
 
 async function loadTransactions() {
   const container = document.getElementById("transactions-list");
@@ -60,21 +35,17 @@ async function loadTransactions() {
       container.innerHTML = '<div class="empty">Нет последних трансферов</div>';
       return;
     }
-
     container.innerHTML = list.map(t => {
       const cleanDate = formatTransactionDate(t.date);
-      let desc = escapeHtml(t.description);
-
-      // Превращаем имена (Имя Фамилия) в кликабельные кнопки
-      desc = desc.replace(/\b([A-Z][a-z]+ [A-Z][a-z]+)\b/g, (match) => {
-        if (EXCLUDE_WORDS.includes(match)) return match;
-        return `<span class="player-tx-link" onclick="searchAndOpenPlayer('${match}')">${match}</span>`;
-      });
+      // Извлекаем название клуба из объекта, чтобы не было [object Object]
+      const teamName = typeof t.team === "object" 
+        ? (t.team.displayName || t.team.name || t.team.abbreviation || "") 
+        : (t.team || "");
 
       return `
         <div class="tx-item">
-          <div class="tx-date">${escapeHtml(cleanDate)} · <span class="tx-team">${escapeHtml(t.team)}</span></div>
-          <div class="tx-desc">${desc}</div>
+          <div class="tx-date">${escapeHtml(cleanDate)} · <span class="tx-team">${escapeHtml(teamName)}</span></div>
+          <div class="tx-desc">${escapeHtml(t.description || "")}</div>
         </div>
       `;
     }).join("");
@@ -95,15 +66,12 @@ async function loadNews() {
     }
     container.innerHTML = list.map(item => {
       let imgSrc = item.image || "";
-      if (!imgSrc && item.photo_id) {
-        imgSrc = `https://nhl-miniapp.onrender.com/api/news/photo/${encodeURIComponent(item.photo_id)}`;
-      }
       return `
         <div class="news-card">
           ${imgSrc ? `<img src="${escapeHtml(imgSrc)}" loading="lazy" onerror="this.style.display='none'">` : ""}
-          <div class="news-meta"><span>📅 ${escapeHtml(item.date)}</span><span>✈ Telegram</span></div>
+          <div class="news-meta"><span>📅 ${escapeHtml(item.date)}</span><span>🏒 NHL News</span></div>
           <a class="news-title-link" href="${escapeHtml(item.link)}" onclick="event.preventDefault(); openPostInTelegram('${escapeHtml(item.link)}');">${escapeHtml(item.title)}</a>
-          <button class="news-read-btn" type="button" onclick="openPostInTelegram('${escapeHtml(item.link)}')">Читать в канале ↗</button>
+          <button class="news-read-btn" type="button" onclick="openPostInTelegram('${escapeHtml(item.link)}')">Читать подробнее ↗</button>
         </div>
       `;
     }).join("");
