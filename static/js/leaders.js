@@ -1,4 +1,3 @@
-// Загрузка полевых игроков через официальный эндпоинт лидеров
 async function loadPlayers() {
   const body = document.getElementById("players-body");
   if (body) body.innerHTML = '<div class="loading">Загрузка лидеров...</div>';
@@ -8,32 +7,8 @@ async function loadPlayers() {
     if (skaterRookieOnly) query += `&isRookie=true`;
     if (skaterPositionFilter && skaterPositionFilter !== "ALL") query += `&positionCode=${skaterPositionFilter}`;
 
-    let data = null;
-    try {
-      data = await fetchAPI(query);
-    } catch (_) {
-      const res = await fetch(`${API_BASE}${query}`);
-      if (res.ok) data = await res.json();
-    }
-
-    let list = data?.[currentCat] || data?.data || data?.skaters || data?.leaders || [];
-
-    // Клиентская фильтрация по позиции, если сервер отдал общий список
-    if (skaterPositionFilter && skaterPositionFilter !== "ALL" && list.length > 0) {
-      const targetPos = skaterPositionFilter.toUpperCase();
-      list = list.filter(p => {
-        const pos = (p.positionCode || p.position || p.player?.positionCode || "").toUpperCase();
-        if (!pos) return true;
-        return targetPos === "D" ? pos === "D" : pos !== "D";
-      });
-    }
-
-    // Клиентская фильтрация новичков
-    if (skaterRookieOnly && list.length > 0) {
-      list = list.filter(p => p.isRookie === true || p.rookie === true || p.player?.isRookie === true);
-    }
-
-    list = list.slice(0, currentLimit);
+    const data = await fetchAPI(query);
+    let list = data?.[currentCat] || data?.skaters || data?.data || data?.leaders || [];
 
     if (!list.length) {
       if (body) body.innerHTML = '<div class="empty">Нет данных лидеров по выбранным фильтрам</div>';
@@ -44,13 +19,11 @@ async function loadPlayers() {
       let valToShow = p.value ?? p[currentCat] ?? "—";
       if (currentCat === "plusMinus" && Number(valToShow) > 0) valToShow = `+${valToShow}`;
 
-      const rawTeam = getTeamAbbrev(p.teamAbbrev || p.team || p.player?.teamTriCode || p.teamTriCode);
+      const rawTeam = getTeamAbbrev(p.teamAbbrev || p.team);
       const cleanTeam = rawTeam.replace(/[^A-Za-z]/gi, "").trim();
-      
-      // Надежный поиск количества сыгранных игр
-      const gp = p.gamesPlayed ?? p.gp ?? p.games ?? p.player?.gamesPlayed ?? "—";
-      const pName = p.name || p.playerFullName || p.player?.fullName || `${nameStr(p.firstName)} ${nameStr(p.lastName)}`.trim();
-      const pId = getPlayerId(p) || p.player?.id || "";
+      const gp = p.gamesPlayed ?? p.gp ?? p.games ?? "—";
+      const pName = p.name || p.playerFullName || `${nameStr(p.firstName)} ${nameStr(p.lastName)}`.trim();
+      const pId = getPlayerId(p) || p.playerId || "";
 
       return `
         <div class="player-row" onclick="openPlayerDetail('${pId}')">
@@ -73,7 +46,6 @@ async function loadPlayers() {
   }
 }
 
-// Загрузка вратарей
 async function loadGoalieCards() {
   const body = document.getElementById("players-body");
   if (body) body.innerHTML = '<div class="loading">Загрузка вратарей...</div>';
@@ -111,7 +83,7 @@ function renderGoaliesFromCache() {
     const cleanTeam = rawTeam.replace(/[^A-Za-z]/gi, "").trim();
     const gp = p.gamesPlayed ?? p.gp ?? "—";
     const pName = p.name || p.playerFullName || `${nameStr(p.firstName)} ${nameStr(p.lastName)}`.trim();
-    const pId = getPlayerId(p);
+    const pId = getPlayerId(p) || p.playerId || "";
 
     let valToShow = p[currentGoalieSortKey] ?? "—";
     if (currentGoalieSortKey === "savePctg" && typeof valToShow === "number") valToShow = valToShow.toFixed(3);
