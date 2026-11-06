@@ -5,27 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>NHL Live</title>
 
-  <!-- АВТОМАТИЧЕСКИЙ ДЕТЕКТОР ОШИБОК -->
-  <script>
-    // Ловит фатальные ошибки скрипта
-    window.onerror = function(msg, url, line, col, error) {
-      alert("❌ ОШИБКА В СКРИПТЕ:\n" + msg + "\n\nФайл: " + (url ? url.split('/').pop() : "неизвестно") + "\nСтрока: " + line);
-      return false;
-    };
-    // Ловит файлы, которые не смогли загрузиться (404)
-    window.addEventListener('error', function(e) {
-      if (e.target && (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK')) {
-        alert("❌ ФАЙЛ НЕ НАЙДЕН НА GITHUB (404):\n" + (e.target.src || e.target.href));
-      }
-    }, true);
-  </script>
-
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;500;600&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="./static/css/styles.css?v=9">
+  <link rel="stylesheet" href="./static/css/styles.css?v=10">
 </head>
 
 <body>
@@ -47,13 +32,11 @@
   </div>
 </header>
 
-<!-- МЕНЮ: 2 РЯДА ПО 3 КНОПКИ -->
-<nav id="main-nav" class="nav-grid-2rows">
+<nav id="main-nav">
   <button id="tab-schedule" class="active">Матчи</button>
   <button id="tab-standings">Таблица</button>
   <button id="tab-players">Лидеры</button>
   <button id="tab-transactions">Трансферы</button>
-  <button id="tab-draft">Драфт</button>
   <button id="tab-news">Новости</button>
 </nav>
 
@@ -97,7 +80,6 @@
             <div class="sortable" data-sort="goalAgainst">ПШ</div>
             <div class="sortable" data-sort="goalDifferential">+/-</div>
             <div class="sortable" data-sort="points">О</div>
-            <div class="sortable" data-sort="pointPctg" title="Процент набранных очков">%О</div>
             <div class="sortable" data-sort="powerPlayPctg">% Б</div>
             <div class="sortable" data-sort="penaltyKillPctg">% М</div>
             <div class="sortable" data-sort="faceoffWinPct">% Вбр</div>
@@ -137,30 +119,17 @@
       <button id="leaders-goalies-btn">Вратари</button>
     </div>
 
-    <div id="skater-filters-bar" class="filter-chips-row">
-      <button id="filter-rookie-toggle" class="filter-chip">👶 Новички (Calder)</button>
-      <button id="filter-pos-d" class="filter-chip">🛡 Защитники (Norris)</button>
-      <button id="filter-pos-f" class="filter-chip">⚡ Форварды</button>
-    </div>
-
-    <div id="skater-categories" class="cat-grid-categories">
+    <div id="skater-categories" class="cat-grid-2rows">
       <button data-cat="points" class="active">PTS</button>
       <button data-cat="goals">G</button>
       <button data-cat="assists">A</button>
-      <button data-cat="pointsPerGame" title="Очки за игру">P/GP</button>
       <button data-cat="plusMinus">+/-</button>
-      <button data-cat="powerPlayGoals" title="Голы в большинстве">PPG</button>
-      <button data-cat="shorthandedGoals" title="Голы в меньшинстве">SHG</button>
       <button data-cat="shots">SOG</button>
       <button data-cat="gameWinningGoals">GWG</button>
       <button data-cat="hits">HIT</button>
       <button data-cat="blockedShots">BLK</button>
       <button data-cat="penaltyMinutes">PIM</button>
       <button data-cat="toiPerGame">ATOI</button>
-    </div>
-
-    <div id="goalie-filters-bar" class="filter-chips-row" style="display:none;">
-      <button id="goalie-min-filter" class="filter-chip active">🧤 Мин. 5 матчей</button>
     </div>
 
     <div id="goalie-categories" class="goalie-cat-grid" style="display:none;">
@@ -183,22 +152,13 @@
     <div class="card" style="padding:0;" id="transactions-list"><div class="loading">Загрузка...</div></div>
   </div>
 
-  <!-- 5. ДРАФТ НХЛ -->
-  <div id="view-draft" style="display:none">
-    <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;margin-bottom:10px;">
-      <span style="font-family:'Oswald',sans-serif;font-size:12px;color:var(--silver-dim);text-transform:uppercase;">Год драфта</span>
-      <select id="draft-year-select" class="date-input" style="width:auto;flex:1;"></select>
-    </div>
-    <div id="draft-rounds-list"><div class="loading">Загрузка драфта...</div></div>
-  </div>
-
-  <!-- 6. НОВОСТИ -->
+  <!-- 5. НОВОСТИ -->
   <div id="view-news" style="display:none">
     <div class="section-title">Новости нашего Telegram-канала</div>
-    <div id="news-feed-container"><div class="loading">Загрузка новостей...</div></div>
+    <div id="news-feed-container"><div class="loading">Загрузка...</div></div>
   </div>
-
-  <!-- ДЕТАЛЬНЫЙ ЭКРАН -->
+  
+  <!-- 6. ЭКРАН ПОДРОБНОСТЕЙ -->
   <div id="view-detail" style="display:none">
     <div id="detail-body"><div class="loading">Загрузка...</div></div>
   </div>
@@ -215,17 +175,16 @@
   </div>
 </div>
 
-<!-- СКРИПТЫ -->
-<script src="./static/js/config.js?v=9"></script>
-<script src="./static/js/utils.js?v=9"></script>
-<script src="./static/js/schedule.js?v=9"></script>
-<script src="./static/js/standings.js?v=9"></script>
-<script src="./static/js/leaders.js?v=9"></script>
-<script src="./static/js/draft.js?v=9"></script>
-<script src="./static/js/pregame.js?v=9"></script>
-<script src="./static/js/team.js?v=9"></script>
-<script src="./static/js/player.js?v=9"></script>
-<script src="./static/js/news.js?v=9"></script>
-<script src="./static/js/app.js?v=9"></script>
+<!-- СКРИПТЫ (Относительные пути ./) -->
+<script src="./static/js/config.js?v=10"></script>
+<script src="./static/js/utils.js?v=10"></script>
+<script src="./static/js/schedule.js?v=10"></script>
+<script src="./static/js/standings.js?v=10"></script>
+<script src="./static/js/leaders.js?v=10"></script>
+<script src="./static/js/pregame.js?v=10"></script>
+<script src="./static/js/team.js?v=10"></script>
+<script src="./static/js/player.js?v=10"></script>
+<script src="./static/js/news.js?v=10"></script>
+<script src="./static/js/app.js?v=10"></script>
 </body>
 </html>
