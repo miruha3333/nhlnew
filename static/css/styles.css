@@ -282,11 +282,11 @@ main { padding: 14px 16px 0; }
   -webkit-overflow-scrolling: touch;
 }
 
-/* Стандартная таблица */
-.standings-table { min-width: 820px; }
+/* Стандартная таблица: ровно 16 колонок */
+.standings-table { min-width: 880px; }
 .standings-head, .standings-row {
   display: grid;
-  grid-template-columns: 26px 32px 105px repeat(8, 38px) 65px 65px 55px 50px 50px;
+  grid-template-columns: 26px 32px 90px repeat(8, 38px) 55px 55px 55px 50px 50px;
   align-items: center;
   border-bottom: 1px solid var(--border);
 }
@@ -296,7 +296,7 @@ main { padding: 14px 16px 0; }
 .advanced-standings-table .standings-head,
 .advanced-standings-table .standings-row {
   display: grid;
-  grid-template-columns: 26px 32px 105px repeat(7, 36px) 65px 65px 60px 60px;
+  grid-template-columns: 26px 32px 90px repeat(7, 36px) 65px 65px 60px 60px;
   align-items: center;
   border-bottom: 1px solid var(--border);
 }
@@ -321,6 +321,7 @@ main { padding: 14px 16px 0; }
 }
 
 .standings-row { cursor: pointer; }
+.standings-row:hover { background: rgba(255, 255, 255, 0.03); }
 .standings-row .name {
   width: 100%;
   justify-content: flex-start;
@@ -330,8 +331,10 @@ main { padding: 14px 16px 0; }
   white-space: nowrap;
 }
 
-.group-header-row > div {
-  grid-column: 1/-1;
+/* Разделители конференций и дивизионов */
+.group-header-row {
+  grid-column: 1 / -1;
+  width: 100%;
   padding: 8px 10px;
   border-bottom: 1px solid var(--border);
   color: var(--silver);
@@ -371,6 +374,7 @@ main { padding: 14px 16px 0; }
   border-bottom: 1px solid var(--border);
   cursor: pointer;
 }
+.player-row:hover { background: rgba(255, 255, 255, 0.03); }
 .player-row .rank { width: 20px; color: var(--silver-dim); font-family: "Roboto Mono", monospace; text-align: center; }
 .player-row .headshot { width: 42px; height: 42px; border-radius: 50%; background: var(--surface-2); object-fit: cover; }
 .player-row .info { flex: 1; min-width: 0; }
@@ -523,7 +527,7 @@ main { padding: 14px 16px 0; }
   line-height: 1.2;
 }
 
-/* ПОСЛЕДНИЕ 10 МАТЧЕЙ МЕЖДУ КЛУБАМИ */
+/* ПОСЛЕДНИЕ 10 МАТЧЕЙ */
 .matchup-summary-box {
   display: flex;
   align-items: center;
