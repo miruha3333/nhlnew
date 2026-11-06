@@ -10,7 +10,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;500;600&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="./static/css/styles.css?v=15">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="static/css/styles.css?v=7">
 </head>
 
 <body>
@@ -32,11 +33,13 @@
   </div>
 </header>
 
-<nav id="main-nav">
+<!-- МЕНЮ: 2 РЯДА ПО 3 КНОПКИ -->
+<nav id="main-nav" class="nav-grid-2rows">
   <button id="tab-schedule" class="active">Матчи</button>
   <button id="tab-standings">Таблица</button>
   <button id="tab-players">Лидеры</button>
   <button id="tab-transactions">Трансферы</button>
+  <button id="tab-draft">Драфт</button>
   <button id="tab-news">Новости</button>
 </nav>
 
@@ -80,6 +83,7 @@
             <div class="sortable" data-sort="goalAgainst">ПШ</div>
             <div class="sortable" data-sort="goalDifferential">+/-</div>
             <div class="sortable" data-sort="points">О</div>
+            <div class="sortable" data-sort="pointPctg" title="Процент набранных очков">%О</div>
             <div class="sortable" data-sort="powerPlayPctg">% Б</div>
             <div class="sortable" data-sort="penaltyKillPctg">% М</div>
             <div class="sortable" data-sort="faceoffWinPct">% Вбр</div>
@@ -119,11 +123,22 @@
       <button id="leaders-goalies-btn">Вратари</button>
     </div>
 
-    <div id="skater-categories" class="cat-grid-2rows">
+    <!-- ФИЛЬТРЫ ПОЛЕВЫХ -->
+    <div id="skater-filters-bar" class="filter-chips-row">
+      <button id="filter-rookie-toggle" class="filter-chip">👶 Новички (Calder)</button>
+      <button id="filter-pos-d" class="filter-chip">🛡 Защитники (Norris)</button>
+      <button id="filter-pos-f" class="filter-chip">⚡ Форварды</button>
+    </div>
+
+    <!-- КАТЕГОРИИ ПОЛЕВЫХ -->
+    <div id="skater-categories" class="cat-grid-categories">
       <button data-cat="points" class="active">PTS</button>
       <button data-cat="goals">G</button>
       <button data-cat="assists">A</button>
+      <button data-cat="pointsPerGame" title="Очки за игру">P/GP</button>
       <button data-cat="plusMinus">+/-</button>
+      <button data-cat="powerPlayGoals" title="Голы в большинстве">PPG</button>
+      <button data-cat="shorthandedGoals" title="Голы в меньшинстве">SHG</button>
       <button data-cat="shots">SOG</button>
       <button data-cat="gameWinningGoals">GWG</button>
       <button data-cat="hits">HIT</button>
@@ -132,59 +147,73 @@
       <button data-cat="toiPerGame">ATOI</button>
     </div>
 
-    <div id="goalie-categories" class="goalie-cat-grid" style="display:none;">
-      <button data-goalie-sort="wins" class="active">W</button>
-      <button data-goalie-sort="losses">L</button>
-      <button data-goalie-sort="savePctg">SV%</button>
-      <button data-goalie-sort="gaa">GAA</button>
-      <button data-goalie-sort="shutouts">SO</button>
-      <button data-goalie-sort="qualityStarts">QS</button>
-      <button data-goalie-sort="saves">SV</button>
-      <button data-goalie-sort="shotsAgainst">SA</button>
+    <!-- ФИЛЬТРЫ ВРАТАРЕЙ -->
+    <div id="goalie-filters-bar" class="filter-chips-row" style="display:none;">
+      <button id="goalie-min-filter" class="filter-chip active">🛡 Мин. 5 матчей</button>
     </div>
 
-    <div class="card"><div id="players-body"><div class="loading">Загрузка лидеров...</div></div></div>
+    <!-- КАТЕГОРИИ ВРАТАРЕЙ -->
+    <div id="goalie-categories" class="goalie-cat-grid" style="display:none;">
+      <button data-goalie-sort="wins" class="active">W</button>
+      <button data-goalie-sort="savePctg">%SV</button>
+      <button data-goalie-sort="gaa">GAA</button>
+      <button data-goalie-sort="shutouts">SO</button>
+    </div>
+
+    <div class="card">
+      <div id="players-body"><div class="loading">Загрузка лидеров...</div></div>
+    </div>
   </div>
 
   <!-- 4. ТРАНСФЕРЫ -->
   <div id="view-transactions" style="display:none">
-    <div class="section-title">Свежие переходы и переподписания (ESPN)</div>
-    <div class="card" style="padding:0;" id="transactions-list"><div class="loading">Загрузка...</div></div>
+    <div class="card" style="padding:0;">
+      <div id="transactions-list"><div class="loading">Загрузка трансферов...</div></div>
+    </div>
   </div>
 
-  <!-- 5. НОВОСТИ -->
+  <!-- 5. ДРАФТ -->
+  <div id="view-draft" style="display:none">
+    <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;margin-bottom:12px;">
+      <span style="font-family:'Oswald',sans-serif;font-size:12px;color:var(--silver-dim);text-transform:uppercase;">Сезон драфта</span>
+      <select id="draft-year-select" class="date-input" style="width:auto;flex:1;"></select>
+    </div>
+    <div id="draft-rounds-list"><div class="loading">Загрузка драфта...</div></div>
+  </div>
+
+  <!-- 6. НОВОСТИ -->
   <div id="view-news" style="display:none">
-    <div class="section-title">Новости нашего Telegram-канала</div>
     <div id="news-feed-container"><div class="loading">Загрузка новостей...</div></div>
   </div>
-  
-  <!-- 6. ЭКРАН ПОДРОБНОСТЕЙ -->
+
+  <!-- ДЕТАЛЬНЫЙ ЭКРАН -->
   <div id="view-detail" style="display:none">
     <div id="detail-body"><div class="loading">Загрузка...</div></div>
   </div>
 </main>
 
-<!-- МОДАЛКА ВЫБОРА КЛУБА -->
-<div id="my-team-modal" class="h2h-modal-wrap" style="display:none;">
-  <div class="h2h-modal">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-      <div style="font-family:'Oswald',sans-serif;font-size:16px;font-weight:700;text-transform:uppercase;">Выберите любимый клуб</div>
-      <button id="close-team-modal-btn" style="background:none;border:none;color:var(--silver-dim);font-size:22px;cursor:pointer;">✕</button>
+<!-- МОДАЛЬНОЕ ОКНО ВЫБОРА КЛУБА -->
+<div id="my-team-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:999;align-items:center;justify-content:center;padding:16px;">
+  <div class="card" style="max-height:85vh;width:100%;max-width:440px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;background:var(--surface);">
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:10px;">
+      <span style="font-family:'Oswald',sans-serif;font-size:16px;font-weight:700;">ВЫБЕРИТЕ ЛЮБИМЫЙ КЛУБ</span>
+      <button id="close-team-modal-btn" style="background:transparent;border:none;color:var(--silver-dim);font-size:22px;cursor:pointer;line-height:1;">✕</button>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:8px;max-height:60vh;overflow-y:auto;" id="team-selector-grid"></div>
+    <div id="team-selector-grid" style="display:grid;grid-template-columns:repeat(4, 1fr);gap:8px;"></div>
   </div>
 </div>
 
-<!-- СКРИПТЫ (Относительные пути ./) -->
-<script src="./static/js/config.js?v=15"></script>
-<script src="./static/js/utils.js?v=15"></script>
-<script src="./static/js/schedule.js?v=15"></script>
-<script src="./static/js/standings.js?v=15"></script>
-<script src="./static/js/leaders.js?v=15"></script>
-<script src="./static/js/pregame.js?v=15"></script>
-<script src="./static/js/team.js?v=15"></script>
-<script src="./static/js/player.js?v=15"></script>
-<script src="./static/js/news.js?v=15"></script>
-<script src="./static/js/app.js?v=15"></script>
+<!-- ПОДКЛЮЧЕНИЕ СКРИПТОВ В СТРОГОМ ПОРЯДКЕ -->
+<script src="utils.js"></script>
+<script src="config.js"></script>
+<script src="pregame.js"></script>
+<script src="schedule.js"></script>
+<script src="standings.js"></script>
+<script src="leaders.js"></script>
+<script src="draft.js"></script>
+<script src="team.js"></script>
+<script src="player.js"></script>
+<script src="news.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
