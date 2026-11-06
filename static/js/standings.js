@@ -3,12 +3,12 @@ async function buildSeasonOptions() {
   if (!sel) return;
   try {
     const data = await fetchAPI("/api/seasons-list");
-    const seasons = Array.isArray(data) ? data : (data?.seasons || []);
+    const seasons = Array.isArray(data) ? data : (data?.data || data?.seasons || []);
     let html = "<option value=''>Текущий сезон</option>";
     [...seasons].sort((a, b) => (b.id || 0) - (a.id || 0)).forEach(s => {
       const id = String(s.id || "");
       if (id.length >= 8) {
-        html += `<option value="${escapeHtml(s.standingsEnd || "")}">${id.slice(0, 4)}-${id.slice(6, 8)}</option>`;
+        html += `<option value="${escapeHtml(s.standingsEnd || s.endDate || "")}">${id.slice(0, 4)}-${id.slice(6, 8)}</option>`;
       }
     });
     sel.innerHTML = html;
@@ -23,7 +23,6 @@ function renderTeamRow(team, rank) {
   const logoSrc = getSafeTeamLogoUrl(abbrev, team.logo || team.teamLogo);
   const diff = Number(team.goalDifferential ?? ((team.goalFor ?? 0) - (team.goalAgainst ?? 0)));
 
-  // Расчёт процента набранных очков (%О)
   const gp = team.gamesPlayed ?? 0;
   const pts = team.points ?? 0;
   const ptPct = team.pointPctg ?? (gp > 0 ? pts / (gp * 2) : 0);
@@ -44,7 +43,6 @@ function renderTeamRow(team, rank) {
       <div class="num">${team.goalAgainst ?? 0}</div>
       <div class="diff" style="color:${diff >= 0 ? '#2ecc71' : '#e74c3c'}">${diff > 0 ? '+' : ''}${diff}</div>
       <div class="pts">${pts}</div>
-      <!-- КОЛОНКА %О -->
       <div class="num" style="color:#ffffff !important;font-weight:700;">${ptPctFormatted}</div>
       <div class="num">${formatPctCell(team.powerPlayPctg)}</div>
       <div class="num">${formatPctCell(team.penaltyKillPctg)}</div>
@@ -107,9 +105,7 @@ async function loadStandings() {
     }
 
     const seasonId = seasonIdFromEndDate(selectedSeasonEndDate);
-    const specialTeamsUrl = seasonId 
-      ? `/api/team-special-teams?season=${seasonId}` 
-      : `/api/team-special-teams`;
+    const specialTeamsUrl = seasonId ? `/api/team-special-teams?season=${seasonId}` : `/api/team-special-teams`;
 
     const [data, specialData] = await Promise.all([
       fetchAPI(standingsUrl).catch(() => null),
@@ -123,9 +119,9 @@ async function loadStandings() {
     }
 
     const specialMap = new Map();
-    const specialTeams = Array.isArray(specialData?.teams) ? specialData.teams : [];
+    const specialTeams = Array.isArray(specialData?.data) ? specialData.data : (Array.isArray(specialData?.teams) ? specialData.teams : []);
     specialTeams.forEach(r => {
-      const ab = getTeamAbbrev(r.teamAbbrev || r.team);
+      const ab = getTeamAbbrev(r.teamFullName || r.teamAbbrev || r.teamTriCode || r.triCode);
       if (ab) specialMap.set(ab, r);
     });
 
@@ -135,9 +131,9 @@ async function loadStandings() {
       return {
         ...t,
         teamAbbrev: ab,
-        powerPlayPctg: sp.powerPlayPctg ?? sp.powerPlayPct ?? t.powerPlayPctg,
-        penaltyKillPctg: sp.penaltyKillPctg ?? sp.penaltyKillPct ?? t.penaltyKillPctg,
-        faceoffWinPct: sp.faceoffWinPct ?? t.faceoffWinPct,
+        powerPlayPctg: sp.powerPlayPct ?? sp.powerPlayPctg ?? t.powerPlayPctg,
+        penaltyKillPctg: sp.penaltyKillPct ?? sp.penaltyKillPctg ?? t.penaltyKillPctg,
+        faceoffWinPct: sp.faceoffWinPct ?? sp.faceoffWinningPctg ?? t.faceoffWinPct,
         shotsForPerGame: sp.shotsForPerGame ?? t.shotsForPerGame,
         shotsAgainstPerGame: sp.shotsAgainstPerGame ?? t.shotsAgainstPerGame
       };
@@ -156,7 +152,7 @@ async function loadAdvancedStandings() {
     const seasonId = seasonIdFromEndDate(selectedSeasonEndDate);
     const query = seasonId ? `?season=${seasonId}` : "";
     const data = await fetchAPI(`/api/advanced-team-stats${query}`);
-    currentAdvancedTeamsData = Array.isArray(data?.teams) ? data.teams : (Array.isArray(data) ? data : []);
+    currentAdvancedTeamsData = Array.isArray(data?.data) ? data.data : (Array.isArray(data?.teams) ? data.teams : (Array.isArray(data) ? data : []));
     renderAdvancedStandings();
   } catch (_) {
     if (body) body.innerHTML = '<div class="empty">Продвинутая статистика временно недоступна</div>';
@@ -181,7 +177,8 @@ function renderAdvancedStandings() {
   });
 
   body.innerHTML = sorted.map((t, idx) => {
-    const reg = regMap.get(t.teamAbbrev) || {};
+    const teamCode = getTeamAbbrev(t.teamFullName || t.teamAbbrev || t.teamTriCode || t.triCode);
+    const reg = regMap.get(teamCode) || {};
     const gp = reg.gamesPlayed ?? t.gamesPlayed ?? 0;
     const rw = Number(reg.regulationWins ?? reg.wins ?? 0);
     const rpo = Number(reg.regulationPlusOtWins ?? rw);
@@ -190,13 +187,18 @@ function renderAdvancedStandings() {
     const losses = Number(reg.losses ?? 0);
     const soLosses = Number(reg.shootoutLosses ?? 0);
     const otLosses = Math.max(0, Number(reg.otLosses ?? 0) - soLosses);
-    const fullTeam = NHL_TEAMS_FULL[t.teamAbbrev] || t.teamAbbrev;
+    const fullTeam = NHL_TEAMS_FULL[teamCode] || teamCode;
+
+    const sat = t.satPct ? Number(t.satPct).toFixed(1) : (t.satPercentage ? Number(t.satPercentage).toFixed(1) : "—");
+    const usat = t.usatPct ? Number(t.usatPct).toFixed(1) : (t.usatPercentage ? Number(t.usatPercentage).toFixed(1) : "—");
+    const pdoVal = t.pdo ?? (t.shootingPlusSavePct ? Number(t.shootingPlusSavePct).toFixed(3) : "—");
+    const ozspVal = t.ozsp ? Number(t.ozsp).toFixed(1) : (t.offensiveZoneStartPct ? Number(t.offensiveZoneStartPct).toFixed(1) : "—");
 
     return `
-      <div class="standings-row" onclick="openTeamDetail('${escapeHtml(t.teamAbbrev)}', '${escapeHtml(fullTeam)}', '')">
+      <div class="standings-row" onclick="openTeamDetail('${escapeHtml(teamCode)}', '${escapeHtml(fullTeam)}', '')">
         <div class="num sticky-col sticky-col-1">${idx + 1}</div>
-        <div class="sticky-col sticky-col-2"><img class="team-logo" src="${escapeHtml(getSafeTeamLogoUrl(t.teamAbbrev))}"></div>
-        <div class="name sticky-col sticky-col-3">${escapeHtml(t.teamAbbrev)}</div>
+        <div class="sticky-col sticky-col-2"><img class="team-logo" src="${escapeHtml(getSafeTeamLogoUrl(teamCode))}"></div>
+        <div class="name sticky-col sticky-col-3">${escapeHtml(teamCode)}</div>
         <div class="num">${gp}</div>
         <div class="num" style="color:#2ecc71;font-weight:700;">${rw}</div>
         <div class="num">${otWins}</div>
@@ -204,10 +206,10 @@ function renderAdvancedStandings() {
         <div class="num" style="color:#e74c3c;font-weight:700;">${losses}</div>
         <div class="num">${otLosses}</div>
         <div class="num">${soLosses}</div>
-        <div class="num" style="color:${t.satPct >= 50 ? '#2ecc71' : '#ff4d4d'};font-weight:700;">${t.satPct}%</div>
-        <div class="num">${t.usatPct}%</div>
-        <div class="num">${t.pdo}</div>
-        <div class="num">${t.ozsp}%</div>
+        <div class="num" style="color:${Number(sat) >= 50 ? '#2ecc71' : '#ff4d4d'};font-weight:700;">${sat}%</div>
+        <div class="num">${usat}%</div>
+        <div class="num">${pdoVal}</div>
+        <div class="num">${ozspVal}%</div>
       </div>
     `;
   }).join("");
@@ -233,30 +235,3 @@ function setStandingsMode(mode) {
     currentStandingsData.length ? renderStandings() : loadStandings();
   }
 }
-
-// Слушатели сортировки по колонкам
-document.querySelectorAll(".standings-head .sortable[data-sort]").forEach(el => {
-  el.onclick = () => {
-    const key = el.dataset.sort;
-    if (standingsSortKey === key) {
-      standingsSortAsc = !standingsSortAsc;
-    } else {
-      standingsSortKey = key;
-      standingsSortAsc = (key === "losses" || key === "goalAgainst" || key === "shotsAgainstPerGame");
-    }
-    renderStandings();
-  };
-});
-
-document.querySelectorAll(".standings-head .sortable[data-adv-sort]").forEach(el => {
-  el.onclick = () => {
-    const key = el.dataset.advSort;
-    if (advStandingsSortKey === key) {
-      advStandingsSortAsc = !advStandingsSortAsc;
-    } else {
-      advStandingsSortKey = key;
-      advStandingsSortAsc = false;
-    }
-    renderAdvancedStandings();
-  };
-});
