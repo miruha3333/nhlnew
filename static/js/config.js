@@ -1,10 +1,11 @@
 const API_BASE = "https://nhlnew.sergvolk504.workers.dev";
+const RENDER_BACKEND = "https://nhl-miniapp.onrender.com";
 
 const tg = window.Telegram?.WebApp;
 tg?.ready();
 tg?.expand();
 
-// Справочник всех 32 клубов
+// Полный справочник клубов
 const NHL_TEAMS_FULL = {
   ANA: "Anaheim Ducks", BOS: "Boston Bruins", BUF: "Buffalo Sabres",
   CGY: "Calgary Flames", CAR: "Carolina Hurricanes", CHI: "Chicago Blackhawks",
@@ -48,14 +49,13 @@ const TEAM_STAT_LABELS = {
   blockedShots: "Заблокировано бросков"
 };
 
-// ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
+// ЕДИНСТВЕННОЕ МЕСТО ОБЪЯВЛЕНИЯ ГЛОБАЛЬНЫХ ПЕРЕМЕННЫХ
 let lastMainTab = "schedule";
 let currentDate = new Date();
 let currentCat = "points";
 let currentLimit = 25;
 let myFavoriteTeam = localStorage.getItem("nhl_my_team") || "";
 
-// Таблица
 let currentStandingsData = [];
 let currentAdvancedTeamsData = [];
 let standingsSortKey = "points";
@@ -65,18 +65,11 @@ let advStandingsSortAsc = false;
 let standingsViewMode = "all";
 let selectedSeasonEndDate = "";
 
-// Лидеры
 let leadersMode = "skaters";
 let currentGoalieSortKey = "wins";
 let currentGoalieSortAsc = false;
 let cachedGoaliesList = [];
 let cachedSkatersList = [];
-let skaterRookieOnly = false;
-let skaterPositionFilter = "ALL";
-let goalieMinGames = true;
-
-// Драфт
-let currentDraftYear = "2024";
 
 let currentTeamFullData = null;
 const goalieHeadshotCache = new Map();
@@ -85,10 +78,11 @@ const h2hTeamCache = new Map();
 let navHistory = [];
 let isNavigatingBack = false;
 
-// Прямой загрузчик через Cloudflare Worker
+// Безопасный загрузчик
 async function fetchAPI(endpoint) {
   const clean = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
 
+  // 1. Пытаемся получить через Cloudflare Worker
   try {
     const res = await fetch(`${API_BASE}${clean}`);
     if (res.ok) {
@@ -96,8 +90,17 @@ async function fetchAPI(endpoint) {
       if (data && !data.error) return data;
     }
   } catch (err) {
-    console.error(`FetchAPI error on ${clean}:`, err);
+    console.warn(`[API] Ошибка запроса к ${clean}:`, err);
   }
+
+  // 2. Резервный запрос через Render
+  try {
+    const res2 = await fetch(`${RENDER_BACKEND}${clean}`);
+    if (res2.ok) {
+      const data2 = await res2.json();
+      if (data2 && !data2.error) return data2;
+    }
+  } catch (_) {}
 
   throw new Error("Не удалось загрузить данные");
 }
