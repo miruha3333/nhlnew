@@ -18,7 +18,7 @@ function renderGame(game) {
     : new Date(game.startTimeUTC).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
 
   return `
-    <div class="card ${isPinned ? 'pinned' : ''}">
+    <div class="card ${isPinned ? 'pinned' : ''}" style="cursor:pointer;" data-game-card="${escapeHtml(game.id)}" data-state="${escapeHtml(game.gameState)}" data-away="${escapeHtml(awayAbbrev)}" data-home="${escapeHtml(homeAbbrev)}">
       <div class="game-row">
         <div class="team" data-team="${escapeHtml(awayAbbrev)}" data-name="${escapeHtml(away.name || awayAbbrev)}">
           <img class="team-logo" src="https://assets.nhle.com/logos/nhl/svg/${escapeHtml(awayAbbrev)}_light.svg" alt="">
@@ -28,7 +28,7 @@ function renderGame(game) {
           </div>
         </div>
 
-        <div class="score-box" data-game-id="${escapeHtml(game.id)}" data-away="${escapeHtml(awayAbbrev)}" data-home="${escapeHtml(homeAbbrev)}">
+        <div class="score-box">
           <div class="score">${started ? `${away.score ?? 0} : ${home.score ?? 0}` : "vs"}</div>
           <div class="status ${isLive ? 'live-pulse' : ''}">${escapeHtml(status)}</div>
         </div>
@@ -51,7 +51,7 @@ async function loadSchedule() {
   const dp = document.getElementById("date-picker");
   if (dp) dp.value = dateStr;
 
-  games.innerHTML = '<div class="loading">Загрузка матчей...</div>';
+  if (games) games.innerHTML = '<div class="loading">Загрузка матчей...</div>';
 
   try {
     const res = await fetch(`${API_BASE}/api/schedule?date=${encodeURIComponent(dateStr)}`);
@@ -60,8 +60,10 @@ async function loadSchedule() {
     let list = day?.games || [];
 
     if (!list.length) {
-      games.innerHTML = '<div class="empty">В этот день матчей нет</div>';
-      loadSpotlight();
+      if (games) {
+        games.innerHTML = '<div class="empty">В этот день матчей нет</div>';
+        loadSpotlight();
+      }
       return;
     }
 
@@ -73,61 +75,51 @@ async function loadSchedule() {
       });
     }
 
-    games.innerHTML = list.map(renderGame).join("");
+    if (games) {
+      games.innerHTML = list.map(renderGame).join("");
 
-    games.querySelectorAll(".score-box").forEach(el => {
-      el.onclick = () => {
-        const gId = el.dataset.gameId;
-        const away = el.dataset.away;
-        const home = el.dataset.home;
-        const g = list.find(item => String(item.id) === String(gId));
-        if (g && (g.gameState === "FUT" || g.gameState === "PRE")) {
-          openFutureGamePreview(gId, away, home, "", "", dateStr);
-        } else {
-          openGameDetail(gId, away, home);
-        }
-      };
-    });
+      // Клик по всей карточке матча
+      games.querySelectorAll(".card[data-game-card]").forEach(card => {
+        card.onclick = () => {
+          const gId = card.dataset.gameCard;
+          const away = card.dataset.away;
+          const home = card.dataset.home;
+          const state = card.dataset.state;
+          if (state === "FUT" || state === "PRE") {
+            openFutureGamePreview(gId, away, home, "", "", dateStr);
+          } else {
+            openGameDetail(gId, away, home);
+          }
+        };
+      });
 
-    games.querySelectorAll(".team[data-team]").forEach(team => {
-      team.onclick = (e) => {
-        e.stopPropagation();
-        openTeamDetail(team.dataset.team, team.dataset.name, "");
-      };
-    });
+      // Клик по логотипу команды для перехода в состав клуба
+      games.querySelectorAll(".team[data-team]").forEach(team => {
+        team.onclick = (e) => {
+          e.stopPropagation();
+          openTeamDetail(team.dataset.team, team.dataset.name, "");
+        };
+      });
+    }
   } catch (err) {
-    games.innerHTML = '<div class="empty">Не удалось загрузить матчи</div>';
+    if (games) games.innerHTML = '<div class="empty">Не удалось загрузить матчи</div>';
   }
 }
 
-// Загрузка ресурса Gamecenter с каскадным fallback
 async function fetchGamecenterEndpoint(gameId, endpoint) {
-  const targetUrl = `https://api-web.nhle.com/v1/gamecenter/${encodeURIComponent(gameId)}/${endpoint}`;
-  const urls = [
-    `${API_BASE}/api/gamecenter/${encodeURIComponent(gameId)}/${endpoint}`,
-    `${API_BASE}/v1/gamecenter/${encodeURIComponent(gameId)}/${endpoint}`,
-    targetUrl,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
-    `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`
-  ];
-
-  for (const u of urls) {
-    try {
-      const res = await fetch(u);
-      if (res.ok) {
-        const text = await res.text();
-        if (text && text.trim().startsWith("{")) return JSON.parse(text);
-      }
-    } catch (_) {}
-  }
+  try {
+    const data = await fetchAPI(`/api/gamecenter/${encodeURIComponent(gameId)}/${endpoint}`);
+    if (data) return data;
+  } catch (_) {}
   return null;
 }
 
-// Полный экран послематчевой статистики
+// Полный экран завершенного матча
 async function openGameDetail(gameId, awayAbbrev, homeAbbrev) {
   pushScreenHistory(() => openGameDetail(gameId, awayAbbrev, homeAbbrev));
   openDetail();
   const body = document.getElementById("detail-body");
+  if (!body) return;
 
   body.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding:6px 0;">
@@ -150,21 +142,17 @@ async function openGameDetail(gameId, awayAbbrev, homeAbbrev) {
     const container = document.getElementById("game-detail-content");
     if (!container) return;
 
-    let html = "";
-
-    // 1. Официальный видеообзор матча (NHL)
-    html += `
+    let html = `
       <div class="section-title">ОФИЦИАЛЬНЫЙ ВИДЕООБЗОР МАТЧА (NHL)</div>
       <div id="video-recap-slot" style="margin-bottom:18px;">
         <div class="loading" style="padding:16px;">Поиск официального обзора...</div>
       </div>
     `;
 
-    // 2. Три звезды матча
+    // 1. Три звезды
     const stars = landing?.summary?.threeStars || [];
     if (stars.length > 0) {
-      html += `<div class="section-title">ТРИ ЗВЕЗДЫ МАТЧА</div>`;
-      html += `<div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:8px;margin-bottom:18px;">`;
+      html += `<div class="section-title">ТРИ ЗВЕЗДЫ МАТЧА</div><div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:8px;margin-bottom:18px;">`;
       stars.forEach((s, idx) => {
         const starNum = s.star || (idx + 1);
         const medal = starNum === 1 ? '🥇 1-Я ЗВЕЗДА' : (starNum === 2 ? '🥈 2-Я ЗВЕЗДА' : '🥉 3-Я ЗВЕЗДА');
@@ -187,7 +175,7 @@ async function openGameDetail(gameId, awayAbbrev, homeAbbrev) {
       html += `</div>`;
     }
 
-    // 3. Голы по периодам
+    // 2. Голы по периодам
     const periods = landing?.summary?.scoring || [];
     html += `<div class="section-title">ГОЛЫ</div>`;
     if (periods.length === 0) {
@@ -225,21 +213,14 @@ async function openGameDetail(gameId, awayAbbrev, homeAbbrev) {
       html += `</div>`;
     }
 
-    // 4. Статистика команд
+    // 3. Статистика команд
     const statsList = landing?.summary?.teamGameStats || [];
     if (statsList.length > 0) {
       const statMapLabels = {
-        sog: "БРОСКИ В СТВОР",
-        faceoffWinningPctg: "ВБРАСЫВАНИЯ, %",
-        faceoffPctg: "ВБРАСЫВАНИЯ, %",
-        faceoffsWon: "ВЫИГРАННЫЕ ВБРАСЫВАНИЯ",
-        powerPlay: "БОЛЬШИНСТВО",
-        powerPlayPctg: "БОЛЬШИНСТВО, %",
-        pim: "ШТРАФ (МИН)",
-        hits: "СИЛОВЫЕ ПРИЁМЫ",
-        blockedShots: "ЗАБЛОКИРОВАНО БРОСКОВ",
-        giveaways: "ПОТЕРИ ШАЙБЫ",
-        takeaways: "ОТБОРЫ ШАЙБЫ"
+        sog: "БРОСКИ В СТВОР", faceoffWinningPctg: "ВБРАСЫВАНИЯ, %", faceoffPctg: "ВБРАСЫВАНИЯ, %",
+        faceoffsWon: "ВЫИГРАННЫЕ ВБРАСЫВАНИЯ", powerPlay: "БОЛЬШИНСТВО", powerPlayPctg: "БОЛЬШИНСТВО, %",
+        pim: "ШТРАФ (МИН)", hits: "СИЛОВЫЕ ПРИЁМЫ", blockedShots: "ЗАБЛОКИРОВАНО БРОСКОВ",
+        giveaways: "ПОТЕРИ ШАЙБЫ", takeaways: "ОТБОРЫ ШАЙБЫ"
       };
 
       html += `
@@ -262,7 +243,6 @@ async function openGameDetail(gameId, awayAbbrev, homeAbbrev) {
         const label = statMapLabels[cat] || cat.toUpperCase();
         let aVal = st.awayValue ?? "—";
         let hVal = st.homeValue ?? "—";
-
         if (cat.toLowerCase().includes("pctg") || cat.toLowerCase().includes("pct")) {
           if (typeof aVal === "number" || (!String(aVal).includes("%") && !isNaN(Number(aVal)))) aVal = `${Number(aVal).toFixed(1)}%`;
           if (typeof hVal === "number" || (!String(hVal).includes("%") && !isNaN(Number(hVal)))) hVal = `${Number(hVal).toFixed(1)}%`;
@@ -279,7 +259,7 @@ async function openGameDetail(gameId, awayAbbrev, homeAbbrev) {
       html += `</div>`;
     }
 
-    // 5. Статистика игроков (полевые и вратари)
+    // 4. Полевые игроки
     function renderSkatersTable(teamAbbrev, skatersList) {
       if (!skatersList || !skatersList.length) return "";
       return `
@@ -288,16 +268,7 @@ async function openGameDetail(gameId, awayAbbrev, homeAbbrev) {
           <table class="stat-table">
             <thead>
               <tr>
-                <th>ИГРОК</th>
-                <th>Г</th>
-                <th>П</th>
-                <th>О</th>
-                <th>+/-</th>
-                <th>Б</th>
-                <th>В</th>
-                <th>Х</th>
-                <th>БЛ</th>
-                <th>% ВБР</th>
+                <th>ИГРОК</th><th>Г</th><th>П</th><th>О</th><th>+/-</th><th>Б</th><th>В</th><th>Х</th><th>БЛ</th><th>% ВБР</th>
               </tr>
             </thead>
             <tbody>
@@ -328,6 +299,7 @@ async function openGameDetail(gameId, awayAbbrev, homeAbbrev) {
       `;
     }
 
+    // 5. Вратари
     function renderGoaliesTable(teamAbbrev, goaliesList) {
       if (!goaliesList || !goaliesList.length) return "";
       return `
@@ -335,14 +307,7 @@ async function openGameDetail(gameId, awayAbbrev, homeAbbrev) {
         <div class="table-scroll" style="margin-bottom:18px;">
           <table class="stat-table">
             <thead>
-              <tr>
-                <th>ВРАТАРЬ</th>
-                <th>БР</th>
-                <th>О</th>
-                <th>%ОБ</th>
-                <th>В</th>
-                <th>ГКИ</th>
-              </tr>
+              <tr><th>ВРАТАРЬ</th><th>БР</th><th>О</th><th>%ОБ</th><th>В</th><th>ГКИ</th></tr>
             </thead>
             <tbody>
               ${goaliesList.map(g => {
@@ -373,17 +338,13 @@ async function openGameDetail(gameId, awayAbbrev, homeAbbrev) {
     const awayBox = boxscore?.playerByGameStats?.awayTeam || {};
     const homeBox = boxscore?.playerByGameStats?.homeTeam || {};
 
-    const awaySkaters = [...(awayBox.forwards || []), ...(awayBox.defense || [])];
-    const homeSkaters = [...(homeBox.forwards || []), ...(homeBox.defense || [])];
-
-    html += renderSkatersTable(awayAbbrev, awaySkaters);
-    html += renderSkatersTable(homeAbbrev, homeSkaters);
+    html += renderSkatersTable(awayAbbrev, [...(awayBox.forwards || []), ...(awayBox.defense || [])]);
+    html += renderSkatersTable(homeAbbrev, [...(homeBox.forwards || []), ...(homeBox.defense || [])]);
     html += renderGoaliesTable(awayAbbrev, awayBox.goalies || []);
     html += renderGoaliesTable(homeAbbrev, homeBox.goalies || []);
 
     container.innerHTML = html;
 
-    // Фоновая загрузка официального YouTube видеообзора
     const gameDate = landing?.gameDate || "";
     if (gameDate) {
       fetch(`${API_BASE}/api/game-youtube-recap?away=${awayAbbrev}&home=${homeAbbrev}&date=${gameDate}`)
@@ -391,11 +352,7 @@ async function openGameDetail(gameId, awayAbbrev, homeAbbrev) {
         .then(vData => {
           const vSlot = document.getElementById("video-recap-slot");
           if (vData?.videoId && vSlot) {
-            vSlot.innerHTML = `
-              <div class="video-container">
-                <iframe src="https://www.youtube.com/embed/${vData.videoId}?playsinline=1&rel=0" allowfullscreen></iframe>
-              </div>
-            `;
+            vSlot.innerHTML = `<div class="video-container"><iframe src="https://www.youtube.com/embed/${vData.videoId}?playsinline=1&rel=0" allowfullscreen></iframe></div>`;
           } else if (vSlot) {
             vSlot.style.display = "none";
           }
@@ -416,7 +373,7 @@ async function loadSpotlight() {
     const res = await fetch(`${API_BASE}/api/leaders/points?limit=5`);
     const data = await res.json();
     const list = data.points || [];
-    if (!list.length) return;
+    if (!list.length || !games) return;
 
     let html = '<div class="section-title">Лидеры лиги по очкам</div>';
     html += list.map((p, i) => `
