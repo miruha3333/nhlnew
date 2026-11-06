@@ -29,7 +29,6 @@ async function loadDraft(year) {
   if (sel) sel.value = targetYear;
 
   try {
-    // Прямой запрос через ваш новый Cloudflare Worker
     const data = await fetchAPI(`/api/draft/${targetYear}`);
 
     let picks = [];
