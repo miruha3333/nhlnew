@@ -47,7 +47,7 @@ function renderGame(game) {
 
 async function loadSchedule() {
   const games = document.getElementById("games");
-  let dateStr = fmtDate(currentDate);
+  const dateStr = fmtDate(currentDate);
   const dp = document.getElementById("date-picker");
   if (dp) dp.value = dateStr;
 
@@ -56,20 +56,7 @@ async function loadSchedule() {
   try {
     const res = await fetch(`${API_BASE}/api/schedule?date=${encodeURIComponent(dateStr)}`);
     const data = await res.json();
-    
-    // Синхронизация даты с текущей активной неделей НХЛ
-    let day = (data.gameWeek || []).find(item => item.date === dateStr);
-    
-    // Если на выбранную дату в базе нет игр, берём ближайший активный день недели
-    if (!day && Array.isArray(data.gameWeek) && data.gameWeek.length > 0) {
-      day = data.gameWeek.find(d => Array.isArray(d.games) && d.games.length > 0) || data.gameWeek[0];
-      if (day?.date) {
-        dateStr = day.date;
-        currentDate = new Date(`${dateStr}T12:00:00`);
-        if (dp) dp.value = dateStr;
-      }
-    }
-
+    const day = (data.gameWeek || []).find(item => item.date === dateStr);
     let list = day?.games || [];
 
     if (!list.length) {
@@ -113,27 +100,30 @@ async function loadSchedule() {
   }
 }
 
-// Загрузка ресурса Gamecenter
+// Загрузка ресурса Gamecenter с каскадным fallback
 async function fetchGamecenterEndpoint(gameId, endpoint) {
-  const targetUrl = `${API_BASE}/api/gamecenter/${encodeURIComponent(gameId)}/${endpoint}`;
-  try {
-    const res = await fetch(targetUrl);
-    if (res.ok) {
-      const data = await res.json();
-      if (data && !data.error) return data;
-    }
-  } catch (_) {}
+  const targetUrl = `https://api-web.nhle.com/v1/gamecenter/${encodeURIComponent(gameId)}/${endpoint}`;
+  const urls = [
+    `${API_BASE}/v1/gamecenter/${encodeURIComponent(gameId)}/${endpoint}`,
+    `${API_BASE}/api/gamecenter/${encodeURIComponent(gameId)}/${endpoint}`,
+    targetUrl,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
+    `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`
+  ];
 
-  // Прямой резерв через v1
-  try {
-    const res2 = await fetch(`${API_BASE}/v1/gamecenter/${encodeURIComponent(gameId)}/${endpoint}`);
-    if (res2.ok) return await res2.json();
-  } catch (_) {}
-
+  for (const u of urls) {
+    try {
+      const res = await fetch(u);
+      if (res.ok) {
+        const text = await res.text();
+        if (text && text.trim().startsWith("{")) return JSON.parse(text);
+      }
+    } catch (_) {}
+  }
   return null;
 }
 
-// ПОЛНЫЙ ЭКРАН ПОСЛЕМАТЧЕВОЙ СТАТИСТИКИ (СО ВСЕМИ 7 РАЗДЕЛАМИ СО СКРИНШОТОВ)
+// ПОЛНЫЙ ЭКРАН ПОСЛЕМАТЧЕВОЙ СТАТИСТИКИ (СОГЛАСНО СКРИНШОТАМ)
 async function openGameDetail(gameId, awayAbbrev, homeAbbrev) {
   pushScreenHistory(() => openGameDetail(gameId, awayAbbrev, homeAbbrev));
   openDetail();
@@ -289,7 +279,7 @@ async function openGameDetail(gameId, awayAbbrev, homeAbbrev) {
       html += `</div>`;
     }
 
-    // 5. ТАБЛИЦЫ ИГРОКОВ (ПОЛЕВЫЕ И ВРАТАРИ)
+    // 5. СТАТИСТИКА ИГРОКОВ (ПОЛЕВЫЕ И ВРАТАРИ)
     function renderSkatersTable(teamAbbrev, skatersList) {
       if (!skatersList || !skatersList.length) return "";
       return `
