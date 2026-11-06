@@ -1,9 +1,3 @@
-function seasonIdFromEndDate(endDate) {
-  if (!endDate || typeof endDate !== "string") return null;
-  const match = endDate.match(/^(\d{4})-\d{2}-\d{2}$/);
-  return match ? `${Number(match[1]) - 1}${Number(match[1])}` : null;
-}
-
 async function buildSeasonOptions() {
   const sel = document.getElementById("season-select");
   if (!sel) return;
@@ -239,3 +233,30 @@ function setStandingsMode(mode) {
     currentStandingsData.length ? renderStandings() : loadStandings();
   }
 }
+
+// Слушатели сортировки по колонкам
+document.querySelectorAll(".standings-head .sortable[data-sort]").forEach(el => {
+  el.onclick = () => {
+    const key = el.dataset.sort;
+    if (standingsSortKey === key) {
+      standingsSortAsc = !standingsSortAsc;
+    } else {
+      standingsSortKey = key;
+      standingsSortAsc = (key === "losses" || key === "goalAgainst" || key === "shotsAgainstPerGame");
+    }
+    renderStandings();
+  };
+});
+
+document.querySelectorAll(".standings-head .sortable[data-adv-sort]").forEach(el => {
+  el.onclick = () => {
+    const key = el.dataset.advSort;
+    if (advStandingsSortKey === key) {
+      advStandingsSortAsc = !advStandingsSortAsc;
+    } else {
+      advStandingsSortKey = key;
+      advStandingsSortAsc = false;
+    }
+    renderAdvancedStandings();
+  };
+});
