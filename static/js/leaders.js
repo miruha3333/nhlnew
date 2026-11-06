@@ -4,7 +4,6 @@ async function loadPlayers() {
   if (body) body.innerHTML = '<div class="loading">Загрузка лидеров...</div>';
 
   try {
-    // Формируем чистый запрос к эндпоинту
     let query = `/api/leaders/${encodeURIComponent(currentCat)}?limit=50`;
     
     if (skaterRookieOnly) {
@@ -19,14 +18,13 @@ async function loadPlayers() {
     try {
       data = await fetchAPI(query);
     } catch (_) {
-      // Прямой запрос к Cloudflare Worker
       const res = await fetch(`${API_BASE}${query}`);
       if (res.ok) data = await res.json();
     }
 
     let list = data?.[currentCat] || data?.data || data?.skaters || data?.leaders || [];
 
-    // Фильтрация по позиции по данным из ответа API (если сервер вернул общий список)
+    // Фильтрация по позиции по данным из ответа API
     if (skaterPositionFilter && skaterPositionFilter !== "ALL" && list.length > 0) {
       const targetPos = skaterPositionFilter.toUpperCase();
       const posFiltered = list.filter(p => {
@@ -37,7 +35,7 @@ async function loadPlayers() {
       if (posFiltered.length > 0) list = posFiltered;
     }
 
-    // Фильтрация по новичкам по данным из ответа API
+    // Фильтрация по новичкам
     if (skaterRookieOnly && list.length > 0) {
       const rookieFiltered = list.filter(p => p.isRookie === true || p.rookie === true || p.player?.isRookie === true);
       if (rookieFiltered.length > 0) list = rookieFiltered;
@@ -87,7 +85,7 @@ async function loadGoalieCards() {
   if (body) body.innerHTML = '<div class="loading">Загрузка вратарей...</div>';
   try {
     const data = await fetchAPI("/api/goalie-leaders?limit=100");
-    cachedGoaliesList = data.goalies || [];
+    cachedGoaliesList = data.goalies || data.wins || data.data || [];
     renderGoaliesFromCache();
   } catch (err) {
     if (body) body.innerHTML = '<div class="empty">Не удалось загрузить вратарей. Повторите попытку позже.</div>';
