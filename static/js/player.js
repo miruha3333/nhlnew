@@ -2,6 +2,7 @@ async function openPlayerDetail(playerId, fallbackDataStr = null) {
   pushScreenHistory(() => openPlayerDetail(playerId, fallbackDataStr));
   openDetail();
   const body = document.getElementById("detail-body");
+  if (!body) return;
   body.innerHTML = '<div class="loading">Загрузка досье игрока...</div>';
 
   let fallback = null;
@@ -15,7 +16,6 @@ async function openPlayerDetail(playerId, fallbackDataStr = null) {
       const directUrl = `https://api-web.nhle.com/v1/player/${encodeURIComponent(playerId)}/landing`;
       const candidateUrls = [
         `${API_BASE}/api/player/${encodeURIComponent(playerId)}`,
-        `${API_BASE}/v1/player/${encodeURIComponent(playerId)}/landing`,
         directUrl,
         `https://api.allorigins.win/raw?url=${encodeURIComponent(directUrl)}`,
         `https://corsproxy.io/?url=${encodeURIComponent(directUrl)}`
@@ -35,7 +35,6 @@ async function openPlayerDetail(playerId, fallbackDataStr = null) {
       }
     }
 
-    // Если профиля в НХЛ еще нет (юниор с драфта) — показываем драфт-карточку
     if (!p) {
       if (fallback) {
         body.innerHTML = `
@@ -93,21 +92,7 @@ async function openPlayerDetail(playerId, fallbackDataStr = null) {
       const regSeasons = history.filter(s => s.gameTypeId === 2);
       const poSeasons = history.filter(s => s.gameTypeId === 3);
 
-      html += `<div class="section-title">История игровой карьеры</div>`;
-      html += `
-        <div class="table-scroll">
-          <table class="stat-table">
-            <thead>
-              <tr>
-                <th>Сезон</th>
-                <th>Лига</th>
-                <th>Клуб</th>
-                <th>И</th>
-                ${isGoalie ? '<th>В</th><th>П</th><th>%ОБ</th><th>ГКИ</th>' : '<th>Г</th><th>П</th><th>О</th><th>+/-</th><th>Штр</th>'}
-              </tr>
-            </thead>
-            <tbody>
-      `;
+      html += `<div class="section-title">История игровой карьеры</div><div class="table-scroll"><table class="stat-table"><thead><tr><th>Сезон</th><th>Лига</th><th>Клуб</th><th>И</th>${isGoalie ? '<th>В</th><th>П</th><th>%ОБ</th><th>ГКИ</th>' : '<th>Г</th><th>П</th><th>О</th><th>+/-</th><th>Штр</th>'}</tr></thead><tbody>`;
 
       if (regSeasons.length > 0) {
         html += `<tr class="playoff-header-row"><td colspan="${isGoalie ? 8 : 9}">Регулярные чемпионаты</td></tr>`;
@@ -141,7 +126,7 @@ async function openPlayerDetail(playerId, fallbackDataStr = null) {
       }
 
       if (poSeasons.length > 0) {
-        html += `<tr class="playoff-header-row"><td colspan="${isGoalie ? 8 : 9}">Плей-офф</td></tr>`;
+        html += `<tr class="playoff-header-row playoff-border"><td colspan="${isGoalie ? 8 : 9}">Плей-офф</td></tr>`;
         poSeasons.forEach(s => {
           const sName = String(s.season || "").replace(/^(\d{4})(\d{4})$/, "$1-$2");
           const league = s.leagueAbbrev || "Лига";
