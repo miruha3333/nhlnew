@@ -44,6 +44,7 @@ export async function buildSeasonOptions() {
 }
 
 function renderTeamRow(team, rank) {
+  // Корректно извлекаем аббревиатуру без [OBJECT OBJECT]
   const abbreviation = getTeamAbbrev(team.teamAbbrev || team.abbrev || team.team);
   const teamName = nameStr(team.teamName || team.name) || abbreviation;
   const logo = team.teamLogo || team.logo;
@@ -172,12 +173,13 @@ export async function loadStandings() {
 
     const specialMap = new Map();
     specialTeams.forEach(row => {
-      let abbrev = row?.teamAbbrev;
-      if (abbrev) specialMap.set(String(abbrev).toUpperCase(), row);
+      let abbrev = getTeamAbbrev(row?.teamAbbrev || row?.team);
+      if (abbrev) specialMap.set(abbrev, row);
     });
 
     state.currentStandingsData = rawStandings.map(team => {
-      const abbrevStr = String(team.teamAbbrev || team.abbrev || "").toUpperCase();
+      // Безопасное определение аббревиатуры команды
+      const abbrevStr = getTeamAbbrev(team.teamAbbrev || team.abbrev || team.triCode);
       const special = specialMap.get(abbrevStr);
       return {
         ...team,
