@@ -12,23 +12,29 @@ async function openPlayerDetail(playerId, fallbackDataStr = null) {
   try {
     let p = null;
     if (playerId && playerId !== "0" && playerId !== "null" && playerId !== "undefined") {
-      try {
-        const res = await fetch(`${API_BASE}/api/player/${encodeURIComponent(playerId)}`);
-        if (res.ok) {
-          p = await res.json();
-        }
-      } catch (_) {}
+      const directUrl = `https://api-web.nhle.com/v1/player/${encodeURIComponent(playerId)}/landing`;
+      const candidateUrls = [
+        directUrl,
+        `${API_BASE}/v1/player/${encodeURIComponent(playerId)}/landing`,
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(directUrl)}`,
+        `https://corsproxy.io/?url=${encodeURIComponent(directUrl)}`
+      ];
 
-      // Прямой резерв
-      if (!p) {
+      for (const u of candidateUrls) {
         try {
-          const res2 = await fetch(`https://api-web.nhle.com/v1/player/${encodeURIComponent(playerId)}/landing`);
-          if (res2.ok) p = await res2.json();
+          const res = await fetch(u);
+          if (res.ok) {
+            const text = await res.text();
+            if (text && text.trim().startsWith("{")) {
+              p = JSON.parse(text);
+              if (p && (p.playerId || p.firstName)) break;
+            }
+          }
         } catch (_) {}
       }
     }
 
-    // Если профиля в регулярке НХЛ еще нет (юниор с драфта)
+    // Если профиля в НХЛ еще нет (юниор с драфта) — показываем драфт-карточку
     if (!p) {
       if (fallback) {
         body.innerHTML = `
@@ -81,7 +87,6 @@ async function openPlayerDetail(playerId, fallbackDataStr = null) {
       </div>
     `;
 
-    // ПОЛНАЯ ИСТОРИЯ КАРЬЕРЫ (ЮНИОРЫ, ЕВРОПА, АХЛ, НХЛ)
     const history = Array.isArray(p.seasonTotals) ? p.seasonTotals : [];
     if (history.length > 0) {
       const regSeasons = history.filter(s => s.gameTypeId === 2);
