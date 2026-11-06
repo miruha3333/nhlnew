@@ -1,4 +1,4 @@
-const API_BASE = "https://nhl-api-proxy.sergvolk504.workers.dev";
+const API_BASE = "https://nhlnew.sergvolk504.workers.dev";";
 
 const tg = window.Telegram?.WebApp;
 tg?.ready();
