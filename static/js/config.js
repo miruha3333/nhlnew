@@ -1,4 +1,4 @@
-const API_BASE = "https://nhlnew.sergvolk504.workers.dev";";
+const API_BASE = "https://nhlnew.sergvolk504.workers.dev";
 
 const tg = window.Telegram?.WebApp;
 tg?.ready();
@@ -85,7 +85,7 @@ const h2hTeamCache = new Map();
 let navHistory = [];
 let isNavigatingBack = false;
 
-// Прямой надежный загрузчик через ваш новый Cloudflare Worker
+// Прямой загрузчик через Cloudflare Worker
 async function fetchAPI(endpoint) {
   const clean = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
 
