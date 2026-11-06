@@ -1,3 +1,19 @@
+// Сопоставитель трехбуквенного кода клуба по полному или частичному названию
+function findTeamAbbrev(strOrObj) {
+  if (!strOrObj) return "";
+  if (typeof strOrObj === "object") {
+    strOrObj = strOrObj.teamFullName || strOrObj.franchiseName || strOrObj.teamAbbrev || strOrObj.triCode || strOrObj.default || "";
+  }
+  const s = String(strOrObj).trim().toUpperCase();
+  if (NHL_TEAMS_FULL[s]) return s;
+
+  for (const [abbr, full] of Object.entries(NHL_TEAMS_FULL)) {
+    const upperFull = full.toUpperCase();
+    if (upperFull === s || s.includes(upperFull) || upperFull.includes(s)) return abbr;
+  }
+  return s;
+}
+
 async function buildSeasonOptions() {
   const sel = document.getElementById("season-select");
   if (!sel) return;
@@ -121,7 +137,7 @@ async function loadStandings() {
     const specialMap = new Map();
     const specialTeams = Array.isArray(specialData?.data) ? specialData.data : (Array.isArray(specialData?.teams) ? specialData.teams : []);
     specialTeams.forEach(r => {
-      const ab = getTeamAbbrev(r.teamFullName || r.teamAbbrev || r.teamTriCode || r.triCode);
+      const ab = findTeamAbbrev(r);
       if (ab) specialMap.set(ab, r);
     });
 
@@ -177,7 +193,7 @@ function renderAdvancedStandings() {
   });
 
   body.innerHTML = sorted.map((t, idx) => {
-    const teamCode = getTeamAbbrev(t.teamFullName || t.teamAbbrev || t.teamTriCode || t.triCode);
+    const teamCode = findTeamAbbrev(t);
     const reg = regMap.get(teamCode) || {};
     const gp = reg.gamesPlayed ?? t.gamesPlayed ?? 0;
     const rw = Number(reg.regulationWins ?? reg.wins ?? 0);
