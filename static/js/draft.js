@@ -1,11 +1,11 @@
-// Заполнение списка драфта годами от 2024 до 1963
+// Заполнение списка драфта годами от 2026 до 1963
 function buildDraftYearOptions() {
   const sel = document.getElementById("draft-year-select");
   if (!sel) return;
 
   if (sel.children.length === 0) {
     let html = "";
-    for (let y = 2024; y >= 1963; y--) {
+    for (let y = 2026; y >= 1963; y--) {
       html += `<option value="${y}" ${String(y) === String(currentDraftYear) ? "selected" : ""}>${y}</option>`;
     }
     sel.innerHTML = html;
@@ -22,7 +22,7 @@ async function loadDraft(year) {
   if (!container) return;
   container.innerHTML = '<div class="loading">Загрузка драфта НХЛ...</div>';
 
-  const targetYear = year || currentDraftYear || "2024";
+  const targetYear = year || currentDraftYear || "2026";
   currentDraftYear = targetYear;
 
   const sel = document.getElementById("draft-year-select");
@@ -83,7 +83,13 @@ async function loadDraft(year) {
         if (pick.weightInKilograms) weight = `${pick.weightInKilograms} кг`;
         else if (pick.weightInPounds || pick.weight) weight = `${Math.round((pick.weightInPounds || pick.weight) * 0.453592)} кг`;
 
-        const meta = [pos, amateur, height, weight].filter(Boolean).join(" · ");
+        // Карьерная статистика в НХЛ, если доступна в драфт-ответе
+        let nhlStat = "";
+        if (pick.careerGamesPlayed) {
+          nhlStat = `НХЛ: ${pick.careerGamesPlayed} игр, ${pick.careerPoints || 0} очков`;
+        }
+
+        const meta = [pos, nhlStat || amateur, height, weight].filter(Boolean).join(" · ");
         const pId = pick.playerId ? String(pick.playerId) : "";
         const overall = pick.overallPick || pick.overallPickNumber || pick.pick || "—";
 
