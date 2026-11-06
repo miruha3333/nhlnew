@@ -1,7 +1,7 @@
 function findTeamAbbrev(strOrObj) {
   if (!strOrObj) return "";
   if (typeof strOrObj === "object") {
-    strOrObj = strOrObj.teamFullName || strOrObj.franchiseName || strOrObj.teamAbbrev || strOrObj.teamAbbrevs || strOrObj.triCode || strOrObj.default || "";
+    strOrObj = strOrObj.teamAbbrev || strOrObj.teamAbbrevs || strOrObj.triCode || strOrObj.teamFullName || strOrObj.franchiseName || strOrObj.default || "";
   }
   const s = String(strOrObj).trim().toUpperCase();
   if (NHL_TEAMS_FULL[s]) return s;
@@ -192,9 +192,18 @@ function renderAdvancedStandings() {
     const ab = getTeamAbbrev(reg.teamAbbrev || reg.abbrev);
     const adv = advMap.get(ab) || {};
 
-    const sf = Number(reg.shotsForPerGame || 30);
-    const sa = Number(reg.shotsAgainstPerGame || 30);
-    const estSat = (sf + sa > 0) ? ((sf / (sf + sa)) * 100).toFixed(1) : "50.0";
+    // Форматирование процента: если API отдает долю (0.52), переводим в проценты (52.0%)
+    const toPct = (val) => {
+      if (val === undefined || val === null || isNaN(val)) return "50.0";
+      const num = Number(val);
+      return (num <= 1.0 ? num * 100 : num).toFixed(1);
+    };
+
+    const satPctVal = toPct(adv.satPct ?? adv.satPercentage);
+    const usatPctVal = toPct(adv.usatPct ?? adv.usatPercentage);
+    const ozspVal = toPct(adv.ozsp ?? adv.offensiveZoneStartPct);
+    const pdoRaw = adv.pdo ?? adv.shootingPlusSavePct;
+    const pdoVal = pdoRaw ? Number(pdoRaw).toFixed(3) : "1.000";
 
     return {
       teamAbbrev: ab,
@@ -205,10 +214,10 @@ function renderAdvancedStandings() {
       losses: reg.losses ?? 0,
       otLosses: reg.otLosses ?? 0,
       shootoutLosses: reg.shootoutLosses ?? 0,
-      satPct: adv.satPct ? Number(adv.satPct).toFixed(1) : (adv.satPercentage ? (adv.satPercentage * 100).toFixed(1) : estSat),
-      usatPct: adv.usatPct ? Number(adv.usatPct).toFixed(1) : (adv.usatPercentage ? (adv.usatPercentage * 100).toFixed(1) : estSat),
-      pdo: adv.pdo ? Number(adv.pdo).toFixed(3) : (adv.shootingPlusSavePct ? Number(adv.shootingPlusSavePct).toFixed(3) : "1.000"),
-      ozsp: adv.ozsp ? Number(adv.ozsp).toFixed(1) : (adv.offensiveZoneStartPct ? (adv.offensiveZoneStartPct * 100).toFixed(1) : "50.0")
+      satPct: satPctVal,
+      usatPct: usatPctVal,
+      pdo: pdoVal,
+      ozsp: ozspVal
     };
   });
 
