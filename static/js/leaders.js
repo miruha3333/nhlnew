@@ -26,7 +26,7 @@ async function loadPlayers() {
       const pId = getPlayerId(p) || p.playerId || "";
 
       return `
-        <div class="player-row" onclick="openPlayerDetail('${pId}')">
+        <div class="player-row" onclick="openPlayerDetail('${pId}', '${encodeURIComponent(JSON.stringify({ fullName: pName, teamAbbrev: cleanTeam }))}')">
           <div class="rank">${i + 1}</div>
           <img class="headshot" src="${escapeHtml(getHeadshot(p))}" alt="" onerror="this.style.visibility='hidden'">
           <div class="info">
@@ -90,7 +90,7 @@ function renderGoaliesFromCache() {
     if (currentGoalieSortKey === "gaa" && typeof valToShow === "number") valToShow = valToShow.toFixed(2);
 
     return `
-      <div class="player-row" onclick="openPlayerDetail('${pId}')">
+      <div class="player-row" onclick="openPlayerDetail('${pId}', '${encodeURIComponent(JSON.stringify({ fullName: pName, teamAbbrev: cleanTeam }))}')">
         <div class="rank">${i + 1}</div>
         <img class="headshot" src="${escapeHtml(getHeadshot(p))}" alt="" onerror="this.style.visibility='hidden'">
         <div class="info">
